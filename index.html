@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>스마트 공정관리 앱 - 두산에너빌리티 Sourcing팀</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div id="app">
+
+<!-- ══ HEADER ══ -->
+<header class="hdr">
+  <div class="hdr-inner">
+    <div class="brand">
+      <div class="brand-hex">⚙</div>
+      <div class="brand-txt">
+        <div class="brand-name">스마트 공정관리 앱</div>
+        <div class="brand-sub">Doosan Enerbility · Sourcing Team Process Management</div>
+      </div>
+    </div>
+    <div class="hdr-credit">
+      <div class="hdr-credit-label">App Created by</div>
+      <div class="hdr-credit-name">Jackson Lee &amp; Dokil Lee</div>
+    </div>
+  </div>
+</header>
+<div class="hdr-line"></div>
+
+<!-- ══ TABS ══ -->
+<nav class="tabs">
+  <button class="tab-btn active" id="tabBtn1" onclick="goTab(1)"><span class="tab-n">1</span>협력사 미팅 협의록</button>
+  <button class="tab-btn" id="tabBtn2" onclick="goTab(2)"><span class="tab-n">2</span>업체/품목별 부하관리</button>
+  <button class="tab-btn" id="tabBtn3" onclick="goTab(3)"><span class="tab-n">3</span>메모/노트</button>
+</nav>
+
+<!-- ══ PAGE 1: 협력사 미팅 협의록 ══ -->
+<div id="page1" class="page active">
+  <div id="ss1" class="sstat unsaved"><span class="dot"></span><span id="ss1t">not saved_ 저장하세요</span></div>
+
+  <div class="sum-wrap">
+    <div class="sum-top-row">
+      <div class="sum-lbl">■ 회의결과 Summary</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn-ai" onclick="openP1AiReview()" style="background:linear-gradient(135deg,#0d6efd,#6610f2)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>AI 수정
+        </button>
+        <button class="btn-ai" onclick="openAiChat(1)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 014 4v1a4 4 0 01-8 0V6a4 4 0 014-4z"/><path d="M18 14c2 1 3 3 3 5v2H3v-2c0-2 1-4 3-5"/></svg>AI 활용
+        </button>
+      </div>
+    </div>
+    <textarea id="p1sum" class="sum-ta" rows="2" placeholder="회의 결과 요약을 입력하세요..."></textarea>
+  </div>
+
+  <div class="toolbar">
+    <div class="tbg">
+      <button class="btn" onclick="addRow1()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>행추가</button>
+      <button class="btn red" onclick="delRowPrompt(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>행삭제</button>
+    </div>
+    <div class="tbsep"></div>
+    <div class="tbg">
+      <button class="btn teal" onclick="doFullscreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>전체화면</button>
+      <button class="btn" onclick="openPersonal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>Personalization</button>
+      <button class="btn" onclick="doShare()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>공유</button>
+    </div>
+    <div class="tbsep"></div>
+    <div class="tbg">
+      <button class="btn" onclick="addPhoto()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>사진추가</button>
+      <button class="btn" onclick="doMail(false)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>메일송부</button>
+      <button class="btn redtxt" onclick="applyRedText()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px"><path d="M4 20h4l10-10-4-4L4 20z"/></svg>
+        <span style="color:#cc1122;font-weight:900;font-size:14px">A</span>빨간글씨
+      </button>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:5px;align-items:center">
+      <button class="btn acc" onclick="completeSort1()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><path d="M3 6h18M7 12h10M11 18h2"/></svg>작성완료
+      </button>
+      <button class="btn save" onclick="openSave(1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>저장
+      </button>
+      <button class="btn grn" onclick="openLoad(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>불러오기</button>
+      <button class="btn" onclick="doExcel1()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>엑셀다운로드
+      </button>
+    </div>
+  </div>
+
+  <div class="twrap">
+    <table id="t1"><thead><tr>
+      <th style="width:28px">#</th>
+      <th class="c-proj">프로젝트</th><th class="c-item">품목명</th><th class="c-vend">업체명</th>
+      <th class="c-cd" id="th-cd">고객납기</th><th class="c-pod" id="th-pod">PO납기</th>
+      <th class="c-rd" id="th-rd">요구납기</th><th class="c-avd">가능납기</th>
+      <th class="c-stat">제작현황</th><th class="c-rmk">비고</th>
+    </tr></thead><tbody id="tb1"></tbody></table>
+  </div>
+  <div id="pharea" class="ph-area"></div>
+  <input type="file" id="phInp" multiple accept="image/*" style="display:none">
+</div>
+
+<!-- ══ PAGE 2: 업체/품목별 부하관리 ══ -->
+<div id="page2" class="page">
+  <div id="ss2" class="sstat unsaved"><span class="dot"></span><span id="ss2t">not saved_ 저장하세요</span></div>
+
+  <div class="sum-wrap">
+    <div class="sum-top-row">
+      <div class="sum-lbl">■ 부하분석 Summary</div>
+      <button class="btn-ai" onclick="openAiChat(2)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 014 4v1a4 4 0 01-8 0V6a4 4 0 014-4z"/><path d="M18 14c2 1 3 3 3 5v2H3v-2c0-2 1-4 3-5"/></svg>AI 활용
+      </button>
+    </div>
+    <textarea id="p2sum" class="sum-ta" rows="2" placeholder="부하분석 요약을 입력하세요..."></textarea>
+  </div>
+
+  <div class="toolbar" style="justify-content:space-between">
+    <div class="tbg">
+      <button class="btn" onclick="addRow2()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>행추가</button>
+      <button class="btn red" onclick="delRowPrompt(2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>행삭제</button>
+      <button class="btn" onclick="openProcName()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>공정명 입력</button>
+      <button class="btn" onclick="ganttShare()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>공유</button>
+      <button class="btn redtxt" onclick="applyRedText2()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px"><path d="M4 20h4l10-10-4-4L4 20z"/></svg>
+        <span style="color:#cc1122;font-weight:900;font-size:14px">A</span>빨간글씨
+      </button>
+    </div>
+    <div class="tbg">
+      <button class="btn grn" onclick="p2Complete()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px"><polyline points="20 6 9 17 4 12"/></svg>작성완료</button>
+      <button class="btn save" onclick="openSave(2)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>저장
+      </button>
+      <button class="btn grn" onclick="openLoad(2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>불러오기</button>
+      <div class="basedate-wrap" id="basedate-wrap">
+        <span class="basedate-lbl">📅 기준일</span>
+        <input type="text" id="basedate-inp" class="basedate-inp" placeholder="YYYY-MM-DD" maxlength="10" autocomplete="off" readonly onclick="toggleBasedateDropdown(event)">
+        <div class="basedate-dropdown" id="basedate-dropdown">
+          <div class="basedate-option" onclick="setBasedateToday()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Today (오늘)
+          </div>
+          <div class="basedate-option" onclick="focusBasedateManual()" style="border-top:1px solid #e0ecf8">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>직접 입력
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="twrap" style="margin-bottom:14px">
+    <table id="t2"><thead><tr>
+      <th style="width:28px">#</th>
+      <th class="c2-vend">업체명</th><th class="c2-proj">프로젝트</th><th class="c2-item">품목명</th>
+      <th class="c2-req">요구납기</th><th class="c2-s">제작착수일</th><th class="c2-e">제작완료일</th>
+      <th class="c2-lt" title="제작착수일~완료일 개월수">L/T(개월)</th>
+      <th class="c2-rmk">비고</th>
+      <th class="c2-p" id="th-p1s">공정1 착수</th><th class="c2-p" id="th-p1e">공정1 완료</th>
+      <th class="c2-p" id="th-p2s">공정2 착수</th><th class="c2-p" id="th-p2e">공정2 완료</th>
+      <th class="c2-p" id="th-p3s">공정3 착수</th><th class="c2-p" id="th-p3e">공정3 완료</th>
+      <th class="c2-p" id="th-p4s">공정4 착수</th><th class="c2-p" id="th-p4e">공정4 완료</th>
+      <th class="c2-prog">진도율</th>
+    </tr></thead><tbody id="tb2"></tbody></table>
+  </div>
+
+  <div id="gantt-sec" style="display:none" class="gantt-sec">
+    <div class="gantt-hdr">
+      <div class="gantt-title">◈ PROCESS GANTT CHART</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="gantt-legend" id="gleg"></div>
+        <button class="btn teal" onclick="ganttFullscreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>전체화면</button>
+      </div>
+    </div>
+    <div class="gantt-outer" id="gantt-outer"></div>
+  </div>
+</div>
+
+<!-- ══ PAGE 3: 메모/노트 ══ -->
+<div id="page3" class="page">
+  <div id="ss3" class="sstat unsaved"><span class="dot"></span><span id="ss3t">not saved_ 저장하세요</span></div>
+
+  <div class="toolbar">
+    <button class="btn save" onclick="openSave(3)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>저장
+    </button>
+    <button class="btn grn" onclick="openLoad(3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>불러오기</button>
+    <button class="btn" onclick="memoClear()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>새 메모</button>
+    <button class="btn teal" onclick="memoExportText()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>텍스트 다운로드</button>
+    <div class="tbsep"></div>
+    <span style="font-size:12px;color:var(--txt3);font-family:var(--fm)">선택 표시:</span>
+    <button class="btn" id="btn-toggle-content2" onclick="memoToggleSection('showContent2')">숨기기</button>
+    <button class="btn" id="btn-toggle-issues"   onclick="memoToggleSection('showIssues')">숨기기</button>
+    <button class="btn" id="btn-toggle-actions"  onclick="memoToggleSection('showActions')">숨기기</button>
+  </div>
+
+  <div class="memo-form">
+    <div class="memo-meta-grid">
+      <div class="memo-row">
+        <div class="memo-lbl">📅 일시</div>
+        <input type="text" id="m3-date" class="memo-inp" placeholder="예: 2026-05-24 14:00">
+      </div>
+      <div class="memo-row">
+        <div class="memo-lbl">📍 장소</div>
+        <input type="text" id="m3-place" class="memo-inp" placeholder="예: 1층 회의실">
+      </div>
+      <div class="memo-row">
+        <div class="memo-lbl">📌 제목</div>
+        <input type="text" id="m3-title" class="memo-inp" placeholder="회의/메모 제목">
+      </div>
+    </div>
+    <div class="memo-row">
+      <div class="memo-lbl">👥 참석자</div>
+      <textarea id="m3-attendees" class="memo-ta" rows="2" placeholder="참석자 이름 입력 (예: 이재성, 이도길, ...)"></textarea>
+    </div>
+    <div class="memo-row">
+      <div class="memo-lbl">📝 회의 내용</div>
+      <textarea id="m3-content" class="memo-ta" rows="5" placeholder="주요 회의 내용을 입력하세요..."></textarea>
+    </div>
+    <div id="m3-sec-content2" class="memo-row">
+      <div class="memo-lbl">📋 추가 내용</div>
+      <textarea id="m3-content2" class="memo-ta" rows="3" placeholder="추가 내용 입력..."></textarea>
+    </div>
+    <div id="m3-sec-issues" class="memo-row">
+      <div class="memo-lbl" style="color:var(--warn)">⚠ 이슈사항</div>
+      <textarea id="m3-issues" class="memo-ta" rows="3" placeholder="이슈사항 및 문제점 입력..."></textarea>
+    </div>
+    <div id="m3-sec-actions" class="memo-row">
+      <div class="memo-lbl" style="color:var(--teal)">✅ 조치사항 / Action Items</div>
+      <textarea id="m3-actions" class="memo-ta" rows="3" placeholder="조치사항 및 후속 Action Items 입력..."></textarea>
+    </div>
+    <div class="memo-row">
+      <div class="memo-lbl">💬 비고</div>
+      <textarea id="m3-remarks" class="memo-ta" rows="2" placeholder="기타 비고사항..."></textarea>
+    </div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<!-- ══ AI CHAT POPUP ══ -->
+<div id="ai-chat-popup" class="ai-chat-popup">
+  <div class="ai-chat-hdr" id="ai-chat-hdr">
+    <div class="ai-chat-hdr-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 014 4v1a4 4 0 01-8 0V6a4 4 0 014-4z"/><path d="M18 14c2 1 3 3 3 5v2H3v-2c0-2 1-4 3-5"/></svg>
+      <span id="ai-chat-title-text">AI 활용</span>
+    </div>
+    <div class="ai-chat-hdr-btns">
+      <button onclick="minimizeAiChat()" title="최소화" id="ai-min-btn">─</button>
+      <button onclick="toggleMaximizeAiChat()" title="최대화" id="ai-max-btn">□</button>
+      <button onclick="closeAiChat()" title="닫기">✕</button>
+    </div>
+  </div>
+  <div class="ai-chat-body" id="ai-chat-body"></div>
+  <div class="ai-suggest-wrap" id="ai-suggest-wrap" style="display:none">
+    <button class="ai-suggest-btn" onclick="aiSuggest('action')">📋 협력사별 Action 정리</button>
+    <button class="ai-suggest-btn" onclick="aiSuggest('issue')">⚠️ 업체별 이슈 보고</button>
+    <button class="ai-suggest-btn" id="ai-suggest-load-btn" onclick="aiSuggest('load')" style="display:none">📊 부하 분석</button>
+  </div>
+  <div class="ai-chat-input-wrap" id="ai-chat-input-wrap">
+    <textarea class="ai-chat-input" id="ai-chat-input" placeholder="AI에게 질문하세요..." rows="1"></textarea>
+    <button class="ai-chat-send" id="ai-chat-send" onclick="sendAiMessage()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ══ P1 AI 수정 팝업 ══ -->
+<div id="p1-ai-review-popup" style="display:none;position:fixed;inset:0;background:rgba(5,20,50,.45);z-index:9600;align-items:flex-start;justify-content:center;padding-top:40px">
+  <div id="p1-ai-review-box">
+    <div id="p1-ai-review-hdr" style="background:linear-gradient(135deg,#0d6efd,#6610f2);padding:12px 16px;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:space-between;cursor:move;user-select:none">
+      <span style="font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;color:#fff;letter-spacing:1px">✏️ AI 수정 결과 — 협력사 미팅 협의록</span>
+      <div style="display:flex;gap:6px">
+        <button onclick="p1AiReviewMinimize()" title="최소화" style="width:28px;height:28px;background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:4px;cursor:pointer;font-size:14px">─</button>
+        <button onclick="document.getElementById('p1-ai-review-popup').style.display='none'" title="닫기" style="width:28px;height:28px;background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:4px;cursor:pointer;font-size:14px">✕</button>
+      </div>
+    </div>
+    <div id="p1-ai-review-body" style="flex:1;overflow-y:auto;padding:16px">
+      <div id="p1-ai-review-content" style="font-family:'Noto Sans KR',sans-serif;font-size:13px;color:#0d1e30;line-height:1.8;white-space:pre-wrap;word-break:break-word;background:#e8f0f9;border:1px solid #8ab8d8;border-radius:5px;padding:14px;user-select:text;min-height:80px">AI가 검토 중...</div>
+    </div>
+    <div style="padding:10px 16px;border-top:1px solid #c4d8f0;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button onclick="p1AiReviewCopy()" class="btn">📋 복사</button>
+      <button onclick="p1AiReviewApply()" class="btn acc">✔ 협의록에 적용</button>
+      <button onclick="document.getElementById('p1-ai-review-popup').style.display='none'" class="btn">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODALS ══ -->
+
+<!-- 저장 -->
+<div id="m-save" class="mbg"><div class="modal">
+  <button class="mclose" onclick="closeModal('m-save')">✕</button>
+  <div class="modal-title">💾 파일 저장</div>
+  <div class="mrow"><div class="mlbl">저장 파일명</div><input type="text" id="sv-fn" class="minp" placeholder="예: 2026-05-24_삼성중공업"></div>
+  <div class="mact"><button class="btn" onclick="closeModal('m-save')">취소</button><button class="btn save" onclick="execSave()">💾 저장</button></div>
+</div></div>
+
+<!-- 불러오기 -->
+<div id="m-load" class="mbg"><div class="modal">
+  <button class="mclose" onclick="closeModal('m-load')">✕</button>
+  <div class="modal-title">📂 불러오기</div>
+  <div class="mrow"><div class="mlbl">저장된 파일 선택</div>
+    <div class="lsel" id="llist"><div style="color:var(--txt3);font-size:13px;padding:14px;text-align:center">불러오는 중...</div></div>
+  </div>
+  <div class="mact">
+    <button class="btn" onclick="closeModal('m-load')">취소</button>
+    <button class="btn red" onclick="execDeleteLoadedFile()" style="margin-right:auto">🗑 파일삭제</button>
+    <button class="btn acc" id="btn-exec-load" onclick="APP.loadFor===3?memoExecLoad():execLoad()">불러오기</button>
+  </div>
+</div></div>
+
+<!-- 행 삭제 -->
+<div id="m-del" class="mbg"><div class="modal">
+  <button class="mclose" onclick="closeModal('m-del')">✕</button>
+  <div class="modal-title">🗑 행 삭제</div>
+  <div class="mrow"><div class="mlbl">삭제할 행 선택</div><div class="lsel" id="dlist"></div></div>
+  <div class="mact"><button class="btn" onclick="closeModal('m-del')">취소</button><button class="btn red" onclick="execDel()">삭제</button></div>
+</div></div>
+
+<!-- 공정명 입력 -->
+<div id="m-pn" class="mbg"><div class="modal">
+  <button class="mclose" onclick="closeModal('m-pn')">✕</button>
+  <div class="modal-title">🔧 공정명 입력</div>
+  <div class="mrow"><div class="proc-rows">
+    <div class="proc-row"><div class="pdot" style="background:#f0b800"></div><span class="proc-lbl">공정 1</span><input type="text" id="pn1" class="minp" placeholder="예: 절단"></div>
+    <div class="proc-row"><div class="pdot" style="background:#e07800"></div><span class="proc-lbl">공정 2</span><input type="text" id="pn2" class="minp" placeholder="예: 성형"></div>
+    <div class="proc-row"><div class="pdot" style="background:#00a870"></div><span class="proc-lbl">공정 3</span><input type="text" id="pn3" class="minp" placeholder="예: 용접"></div>
+    <div class="proc-row"><div class="pdot" style="background:#1a88ff"></div><span class="proc-lbl">공정 4</span><input type="text" id="pn4" class="minp" placeholder="예: 검사"></div>
+  </div></div>
+  <div class="mact"><button class="btn" onclick="closeModal('m-pn')">취소</button><button class="btn acc" onclick="applyProcName()">저장</button></div>
+</div></div>
+
+<!-- Personalization -->
+<div id="m-pers" class="mbg"><div class="modal" style="background:#f0f6ff;border:2px solid #4a9cc8">
+  <button class="mclose" onclick="closeModal('m-pers')">✕</button>
+  <div class="modal-title">⚙ Personalization</div>
+  <div class="mrow">
+    <div class="mlbl" style="font-size:13px;color:var(--txt2);margin-bottom:10px;font-weight:700">전체화면/공유 시 표시할 납기 열</div>
+    <div class="cbg" style="background:#fff;border:1.5px solid #c4d8f0;border-radius:6px;padding:14px 18px;gap:13px">
+      <label class="cbr"><input type="checkbox" id="ck-cd" checked> 고객납기</label>
+      <label class="cbr"><input type="checkbox" id="ck-pod" checked> PO납기</label>
+      <label class="cbr"><input type="checkbox" id="ck-rd" checked> 요구납기</label>
+    </div>
+  </div>
+  <div class="mact">
+    <button class="btn" onclick="closeModal('m-pers')">취소</button>
+    <button class="btn acc" onclick="applyPersonal()">✔ 적용</button>
+  </div>
+</div></div>
+
+<!-- AI 비밀번호 -->
+<div id="m-ai-pw" class="mbg"><div class="modal" style="max-width:380px">
+  <button class="mclose" onclick="closeModal('m-ai-pw')">✕</button>
+  <div class="modal-title" style="color:#5b21b6;border-bottom-color:#e0d4f5">🔐 AI 기능 인증</div>
+  <div class="mrow">
+    <div style="font-size:13px;color:var(--txt2);margin-bottom:12px;line-height:1.6">AI 기능은 권한이 있는 사용자만 사용할 수 있습니다.<br>관리자에게 비밀번호를 문의하세요.</div>
+    <div class="mlbl">비밀번호</div>
+    <input type="password" id="ai-pw-input" class="minp" placeholder="비밀번호 입력" style="border-color:#c4b5fd">
+    <div class="ai-pw-error" id="ai-pw-error"></div>
+  </div>
+  <div class="mact">
+    <button class="btn" onclick="closeModal('m-ai-pw')">취소</button>
+    <button class="btn" id="ai-pw-confirm" style="background:linear-gradient(135deg,#7c3aed,#a855f7);border-color:#5b21b6;color:#fff;font-weight:700">확인</button>
+  </div>
+</div></div>
+
+<!-- ══ FULLSCREEN ══ -->
+<div id="fsov">
+  <div class="fs-bar">
+    <button class="fs-btn mail" onclick="doMail(true)">메일송부</button>
+    <button class="fs-btn share" onclick="doShareFromFs()">공유</button>
+    <button class="fs-btn close" onclick="closeFS()">✕ 닫기</button>
+  </div>
+  <div id="fscnt"></div>
+</div>
+
+<div id="fsov2">
+  <div class="fs-bar2">
+    <button class="fs-btn mail" onclick="ganttMail()">메일송부</button>
+    <button class="fs-btn share" onclick="ganttShareFromFs()">공유</button>
+    <button class="fs-btn close" onclick="closeFS2()">✕ 닫기</button>
+  </div>
+  <div id="fscnt2"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- ══ SCRIPTS ══ -->
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script src="js/tab1.js"></script>
+<script src="js/tab2.js"></script>
+<script src="js/tab3.js"></script>
+<script src="js/ai.js"></script>
+</body>
+</html>
