@@ -2,7 +2,7 @@
 // 스마트 공정관리 앱 - Google Apps Script (GAS) 백엔드
 // ══════════════════════════════════════════════════════════════
 
-var SS_ID  = '1mh_S620--4hgfFLRVeuUvMzmtRrA2udq8b6l__cMfq8';
+var SS_ID  = '16oPn8hzHJKYz2bK-cGs4awuIf_cU2HnCo3xh0CDUZ2U';
 var SHEET1 = '기록';
 var SHEET2 = '기록2';
 var SHEET3 = '기록3';
