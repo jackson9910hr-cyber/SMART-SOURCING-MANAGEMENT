@@ -10,6 +10,15 @@ var SHEET1 = '기록';
 var SHEET2 = '기록2';
 var SHEET3 = '기록3';
 
+/* ══ 초기 설정 (최초 1회만 실행) ══
+   GAS 에디터에서 이 함수를 선택하고 ▶ 실행하면
+   스크립트 속성이 자동으로 설정됩니다. */
+function initScriptProperties() {
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty('SPREADSHEET_ID', '16oPn8hzHJKYz2bK-cGs4awuIf_cU2HnCo3xh0CDUZ2U');
+  Logger.log('✅ SPREADSHEET_ID 설정 완료: ' + props.getProperty('SPREADSHEET_ID'));
+}
+
 /* ══ HTTP POST 핸들러 (외부 웹앱에서 API 호출용) ══ */
 function doPost(e) {
   try {
