@@ -130,14 +130,15 @@ function saveMeeting(payload) {
     var ts = nowStr();
     var author = payload.author || '';
     deleteByFileName(sheet, fileName, 'MTG_');
-    sheet.appendRow(['MTG_META', fileName, ts, summary, 0, author,'','','','','','','','', JSON.stringify(colSet), '', '']);
+    // 열 구성: A~Q = 기존 데이터, R(index17) = 작성자 전용열
+    sheet.appendRow(['MTG_META', fileName, ts, summary, 0, '','','','','','','','','', JSON.stringify(colSet), '', '', author]);
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i] || [];
       var pd  = (photos[i] && photos[i].data) ? JSON.stringify(photos[i].data) : '';
       var pdc = (photos[i] && photos[i].desc) ? JSON.stringify(photos[i].desc) : '';
       sheet.appendRow(['MTG_ROW', fileName, ts, summary, i+1,
         row[0]||'', row[1]||'', row[2]||'', row[3]||'', row[4]||'', row[5]||'',
-        row[6]||'', row[7]||'', row[8]||'', JSON.stringify(colSet), pd, pdc]);
+        row[6]||'', row[7]||'', row[8]||'', JSON.stringify(colSet), pd, pdc, '']);
     }
     return { success: true, savedAuthor: author };
   } catch(e) { return { success: false, error: e.toString() }; }
@@ -150,7 +151,9 @@ function loadMeetingList() {
     var map   = {};
     for (var i = 0; i < data.length; i++) {
       if (String(data[i][0]) === 'MTG_META') {
-        map[String(data[i][1])] = { date: String(data[i][2]), author: String(data[i][5] || '') };
+        // index17(열R)=작성자 전용열. 구버전 데이터는 index5(열F) fallback
+        var au = String(data[i][17] || data[i][5] || '');
+        map[String(data[i][1])] = { date: String(data[i][2]), author: au };
       }
     }
     var list = [];
@@ -384,6 +387,18 @@ function sendReportEmail(base64Img, subject, recipientEmail) {
     });
     return { success: true };
   } catch(e) { return { success: false, error: e.toString() }; }
+}
+
+/* ══ 작성자 저장 진단용 테스트 함수 (GAS 편집기에서 직접 실행) ══
+   실행 후 기록 시트의 마지막 행 R열에 "홍길동"이 보이면 정상 */
+function testSaveAuthor() {
+  var testFile = 'AUTHOR_TEST_' + nowStr().replace(/[:\s]/g, '-');
+  var r = saveMeeting({
+    fileName: testFile, summary: '테스트', rows: [],
+    colSettings: {}, photos: [], author: '홍길동'
+  });
+  Logger.log('저장 결과: ' + JSON.stringify(r));
+  Logger.log('기록 시트 열R에서 "' + testFile + '" 행의 작성자 확인하세요');
 }
 
 /* ══ OpenAI API 프록시 ══ */
