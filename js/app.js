@@ -576,20 +576,23 @@ function focusBasedateManual() {
 document.addEventListener('DOMContentLoaded', function() {
   initSumTA();
 
-  // 사진 파일 선택
-  document.getElementById('phInp').addEventListener('change', function(e) {
-    var files = Array.from(e.target.files); if (!files.length) return;
-    var group = { desc: [], data: [] }, loaded = 0;
-    files.forEach(function(f, fi) {
-      var reader = new FileReader();
-      reader.onload = function(ev) {
-        group.data[fi] = ev.target.result; group.desc[fi] = ''; loaded++;
-        if (loaded === files.length) { APP.p1.photos.push(group); renderPhotos(); setDirty(1); }
-      };
-      reader.readAsDataURL(f);
+  // 사진 파일 선택 (phInp 요소가 있을 때만)
+  var phInp = document.getElementById('phInp');
+  if (phInp) {
+    phInp.addEventListener('change', function(e) {
+      var files = Array.from(e.target.files); if (!files.length) return;
+      var group = { desc: [], data: [] }, loaded = 0;
+      files.forEach(function(f, fi) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          group.data[fi] = ev.target.result; group.desc[fi] = ''; loaded++;
+          if (loaded === files.length) { APP.p1.photos.push(group); renderPhotos(); setDirty(1); }
+        };
+        reader.readAsDataURL(f);
+      });
+      e.target.value = '';
     });
-    e.target.value = '';
-  });
+  }
 
   // 기준일 드롭다운 외부 클릭 닫기
   document.addEventListener('click', function(e) {
