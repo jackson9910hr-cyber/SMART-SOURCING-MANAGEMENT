@@ -92,7 +92,8 @@ function memoOpenLoad() {
     var sorted = r.list.slice().sort(function(a, b) { return b.name > a.name ? 1 : b.name < a.name ? -1 : 0; });
     sorted.forEach(function(item) {
       var d = document.createElement('div'); d.className = 'litem';
-      d.innerHTML = '<span class="litem-name">' + escH(item.name) + '</span><span class="litem-date">' + escH(item.date) + '</span>';
+      var ab = item.author ? '<span class="litem-author">' + escH(item.author) + '</span>' : '';
+      d.innerHTML = '<span class="litem-name">' + escH(item.name) + '</span>' + ab + '<span class="litem-date">' + escH((item.date||'').slice(0,10)) + '</span>';
       d.onclick = function() { ll.querySelectorAll('.litem').forEach(function(x) { x.classList.remove('sel'); }); d.classList.add('sel'); APP.loadSel = item.name; };
       ll.appendChild(d);
     });
@@ -110,14 +111,86 @@ function memoExecLoad() {
   });
 }
 
-function memoExecSave(fn) {
+function memoExecSave(fn, author) {
   callAPI('saveMemo', {
     fileName: fn,
     fields: memoGetFields(),
-    options: MEMO_STATE.options
+    options: MEMO_STATE.options,
+    author: author || ''
   }).then(function(r) {
     if (r.success) { memoClean(fn); showToast('저장 완료: ' + fn); }
     else showToast('오류: ' + r.error, true);
+  });
+}
+
+function openMemoOptions() {
+  var ks = { showContent2: 'ck-memo-content2', showIssues: 'ck-memo-issues', showActions: 'ck-memo-actions' };
+  Object.keys(ks).forEach(function(k) {
+    var el = document.getElementById(ks[k]); if (el) el.checked = !!MEMO_STATE.options[k];
+  });
+  openModal('m-memo-opts');
+}
+
+function applyMemoOption(k) {
+  MEMO_STATE.options[k] = document.getElementById({ showContent2:'ck-memo-content2', showIssues:'ck-memo-issues', showActions:'ck-memo-actions' }[k]).checked;
+  memoApplyOptions(); memoDirty();
+}
+
+function applyRedTextMemo() {
+  if (_lastTA && document.getElementById('page3').contains(_lastTA)) { insertRedMarker(_lastTA, _lastTASel); }
+  else showToast('메모 내용란을 클릭하고 텍스트를 선택한 후 버튼을 누르세요', true);
+}
+
+function memoFullscreen() {
+  var fc = document.getElementById('fscnt'); fc.innerHTML = '';
+  var f = memoGetFields();
+  var hd = document.createElement('div');
+  hd.style.cssText = 'font-family:var(--fh);font-size:20px;font-weight:700;color:var(--accentD);letter-spacing:2px;margin-bottom:18px;padding-bottom:9px;border-bottom:2px solid var(--panel)';
+  hd.textContent = '◈ 메모/노트' + (f.title ? ' — ' + f.title : ''); fc.appendChild(hd);
+  var tbl = document.createElement('table');
+  tbl.style.cssText = 'width:100%;border-collapse:collapse;font-size:14px;font-family:Noto Sans KR,sans-serif';
+  var rows = [
+    { label: '📅 일자', val: f.date }, { label: '📍 장소', val: f.place },
+    { label: '👥 참석자', val: f.attendees }, { label: '📌 제목', val: f.title },
+    { label: '📝 내용', val: f.content }
+  ];
+  if (MEMO_STATE.options.showContent2 && f.content2) rows.push({ label: '📋 추가', val: f.content2 });
+  if (MEMO_STATE.options.showIssues && f.issues) rows.push({ label: '⚠ 이슈', val: f.issues });
+  if (MEMO_STATE.options.showActions && f.actions) rows.push({ label: '✅ 조치', val: f.actions });
+  if (f.remarks) rows.push({ label: '💬 비고', val: f.remarks });
+  rows.forEach(function(fld) {
+    var tr = document.createElement('tr');
+    var th = document.createElement('td');
+    th.style.cssText = 'background:linear-gradient(160deg,#001f4d,#003580);color:#fff;font-family:Rajdhani,sans-serif;font-weight:700;font-size:13px;padding:10px 14px;width:110px;vertical-align:top;border-bottom:1px solid rgba(255,255,255,.12);white-space:nowrap';
+    th.textContent = fld.label;
+    var td = document.createElement('td');
+    td.style.cssText = 'background:#fff;color:#0d1e30;padding:10px 14px;border-bottom:1px solid #dde9f7;font-size:14px;line-height:1.65;white-space:pre-wrap;vertical-align:top';
+    td.textContent = fld.val || '';
+    tr.appendChild(th); tr.appendChild(td); tbl.appendChild(tr);
+  });
+  fc.appendChild(tbl);
+  document.getElementById('fsov').classList.add('active');
+}
+
+function openMemoAiReview() {
+  requireAiAuth(function() {
+    var f = memoGetFields();
+    var parts = [];
+    if (f.date) parts.push('일자: ' + f.date);
+    if (f.place) parts.push('장소: ' + f.place);
+    if (f.attendees) parts.push('참석자: ' + f.attendees);
+    if (f.title) parts.push('제목: ' + f.title);
+    if (f.content) parts.push('\n[회의 내용]\n' + f.content);
+    if (f.content2) parts.push('\n[추가 내용]\n' + f.content2);
+    if (f.issues) parts.push('\n[이슈사항]\n' + f.issues);
+    if (f.actions) parts.push('\n[조치사항]\n' + f.actions);
+    if (f.remarks) parts.push('\n[비고]\n' + f.remarks);
+    if (!parts.length) { showToast('메모 내용을 먼저 입력하세요', true); return; }
+    _doOpenAiChat(3);
+    setTimeout(function() {
+      var el = document.getElementById('ai-chat-input');
+      if (el) { el.value = '다음 메모/회의록을 격식체 완결형으로 다듬어 주세요. 맞춤법 교정, 비문 제거, 전문 용어 활용:\n\n' + parts.join('\n'); sendAiMessage(); }
+    }, 350);
   });
 }
 
