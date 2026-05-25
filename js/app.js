@@ -104,7 +104,7 @@ document.addEventListener('keyup', function() {
 function insertRedMarker(ta, sel) {
   if (!ta) return;
   var v = ta.value, s = sel.s, e = sel.e;
-  if (s === e) { showToast('빨간글씨로 바꿼 텍스트를 먼저 선택하세요', true); return; }
+  if (s === e) { showToast('빨간글씨로 바꿀 텍스트를 먼저 선택하세요', true); return; }
   var selected = v.substring(s, e);
   ta.value = v.substring(0, s) + '[R]' + selected + '[/R]' + v.substring(e);
   arTA(ta);
@@ -452,7 +452,7 @@ function execDeleteLoadedFile() {
   });
 }
 
-/* ══ 캡쳐/공유/메일 ══ */
+/* ══ 쳪쳐/공유/메일 ══ */
 function captureEl(el, cb, forMail) {
   var ow = el.style.overflow; el.style.overflow = 'visible';
   var sc = forMail ? 0.7 : 1.5; var q = forMail ? 0.55 : 0.9;
@@ -523,7 +523,7 @@ function filterLoadList() {
 }
 
 /* ══ 사진 기능 ══ */
-function addPhoto() { document.getElementById('phInp').click(); }
+function addPhoto() { var phInp = document.getElementById('phInp'); if (phInp) phInp.click(); }
 
 function renderPhotos() {
   var pa = document.getElementById('pharea'); pa.innerHTML = '';
@@ -575,6 +575,24 @@ function focusBasedateManual() {
 /* ══ 이벤트 초기화 ══ */
 document.addEventListener('DOMContentLoaded', function() {
   initSumTA();
+
+  // 사진 파일 선택 (phInp 요소가 있을 때만)
+  var phInp = document.getElementById('phInp');
+  if (phInp) {
+    phInp.addEventListener('change', function(e) {
+      var files = Array.from(e.target.files); if (!files.length) return;
+      var group = { desc: [], data: [] }, loaded = 0;
+      files.forEach(function(f, fi) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          group.data[fi] = ev.target.result; group.desc[fi] = ''; loaded++;
+          if (loaded === files.length) { APP.p1.photos.push(group); renderPhotos(); setDirty(1); }
+        };
+        reader.readAsDataURL(f);
+      });
+      e.target.value = '';
+    });
+  }
 
   // 기준일 드롭다운 외부 클릭 닫기
   document.addEventListener('click', function(e) {
