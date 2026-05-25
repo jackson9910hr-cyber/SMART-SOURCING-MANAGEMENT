@@ -56,7 +56,9 @@ function _doOpenAiChat(pg) {
   var popup = document.getElementById('ai-chat-popup');
   var body  = document.getElementById('ai-chat-body'); body.innerHTML = '';
   document.getElementById('ai-chat-title-text').textContent =
-    pg === 1 ? "Jackson's AI활용 - 협력사 미팅 협의록" : "Jackson's AI활용 - 업체/품목별 부하관리";
+    pg === 1 ? "Jackson's AI활용 - 협력사 미팅 협의록" :
+    pg === 2 ? "Jackson's AI활용 - 업체/품목별 부하관리" :
+               "Jackson's AI활용 - 메모/노트";
   if (!AI_STATE.isOpen) {
     popup.style.right = '20px'; popup.style.bottom = '20px'; popup.style.left = ''; popup.style.top = '';
     AI_STATE.isMaximized = false; AI_STATE.isMinimized = false;
@@ -72,6 +74,7 @@ function _doOpenAiChat(pg) {
   document.querySelectorAll('.ai-suggest-btn:not(#ai-suggest-load-btn)').forEach(function(b) {
     b.style.display = pg === 1 ? '' : 'none';
   });
+  document.getElementById('ai-suggest-wrap').style.display = (pg === 3) ? 'none' : 'flex';
   addAiMsg('system', '준비 중...');
   AI_STATE.messages = [{ role: 'system', content: buildFallbackPrompt(pg) }];
   body.innerHTML = '';
@@ -123,7 +126,7 @@ function addAiMsg(role, text) {
 
 function buildFallbackPrompt(pg) {
   var today = todayStr();
-  var pageName = pg === 1 ? '협력사 미팅 협의록' : '업체/품목별 부하관리';
+  var pageName = pg === 1 ? '협력사 미팅 협의록' : pg === 2 ? '업체/품목별 부하관리' : '메모/노트';
   return [
     '당신은 두산에너빌리티 Sourcing팀 협력사 공정관리 전문 AI 어시스턴트입니다.',
     '현재 날짜: ' + today,

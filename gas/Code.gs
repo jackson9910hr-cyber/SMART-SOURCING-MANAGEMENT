@@ -40,7 +40,7 @@ function doPost(e) {
       case 'loadMemoList':     result = loadMemoList(); break;
       case 'loadMemo':         result = loadMemo(payload.fileName); break;
       case 'deleteMemo':       result = deleteMemo(payload.fileName); break;
-      case 'sendReportEmail':  result = sendReportEmail(payload.base64Img, payload.subject); break;
+      case 'sendReportEmail':  result = sendReportEmail(payload.base64Img, payload.subject, payload.recipientEmail); break;
       case 'callOpenAI':       result = callOpenAI_auth(payload); break;
       case 'verifyAiPassword': result = verifyAiPassword(payload.password); break;
       default: result = { success: false, error: 'Unknown action: ' + action };
@@ -130,7 +130,7 @@ function saveMeeting(payload) {
     var photos   = payload.photos   || [];
     var ts = nowStr();
     deleteByFileName(sheet, fileName, 'MTG_');
-    sheet.appendRow(['MTG_META', fileName, ts, summary, 0, '','','','','','','','','', JSON.stringify(colSet), '', '']);
+    sheet.appendRow(['MTG_META', fileName, ts, summary, 0, payload.author||'','','','','','','','','', JSON.stringify(colSet), '', '']);
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i] || [];
       var pd  = (photos[i] && photos[i].data) ? JSON.stringify(photos[i].data) : '';
@@ -149,10 +149,12 @@ function loadMeetingList() {
     var data  = sheet.getDataRange().getValues();
     var map   = {};
     for (var i = 0; i < data.length; i++) {
-      if (String(data[i][0]) === 'MTG_META') map[String(data[i][1])] = String(data[i][2]);
+      if (String(data[i][0]) === 'MTG_META') {
+        map[String(data[i][1])] = { date: String(data[i][2]), author: String(data[i][5] || '') };
+      }
     }
     var list = [];
-    for (var k in map) if (map.hasOwnProperty(k)) list.push({ name: k, date: map[k] });
+    for (var k in map) if (map.hasOwnProperty(k)) list.push({ name: k, date: map[k].date, author: map[k].author });
     list.sort(function(a,b){ return b.date.localeCompare(a.date); });
     return { success: true, list: list };
   } catch(e) { return { success: false, error: e.toString() }; }
@@ -206,7 +208,7 @@ function saveLoad(payload) {
     var ts = nowStr();
     deleteByFileName(sheet, fileName, 'LOAD_');
     sheet.appendRow(['LOAD_META', fileName, ts, JSON.stringify(processNames), 0,
-      summary2,'','','','','','','','','','','','','','',basedate,'','','','','','']);
+      summary2,'','','','','','','','','','','','','','',basedate, payload.author||'','','','','','']);
     for (var i = 0; i < rows.length; i++) {
       var row  = rows[i] || [];
       var prog = progress[i] ? JSON.stringify(progress[i]) : '';
@@ -225,10 +227,12 @@ function loadLoadList() {
     var data  = sheet.getDataRange().getValues();
     var map   = {};
     for (var i = 0; i < data.length; i++) {
-      if (String(data[i][0]) === 'LOAD_META') map[String(data[i][1])] = String(data[i][2]);
+      if (String(data[i][0]) === 'LOAD_META') {
+        map[String(data[i][1])] = { date: String(data[i][2]), author: String(data[i][21] || '') };
+      }
     }
     var list = [];
-    for (var k in map) if (map.hasOwnProperty(k)) list.push({ name: k, date: map[k] });
+    for (var k in map) if (map.hasOwnProperty(k)) list.push({ name: k, date: map[k].date, author: map[k].author });
     list.sort(function(a,b){ return b.date.localeCompare(a.date); });
     return { success: true, list: list };
   } catch(e) { return { success: false, error: e.toString() }; }
@@ -297,7 +301,7 @@ function saveMemo(payload) {
       fields.date||'', fields.place||'', fields.attendees||'',
       fields.title||'', fields.content||'', fields.content2||'',
       fields.issues||'', fields.actions||'', fields.remarks||'',
-      JSON.stringify(options)
+      JSON.stringify(options), payload.author||''
     ]);
     return { success: true };
   } catch(e) { return { success: false, error: e.toString() }; }
@@ -309,10 +313,12 @@ function loadMemoList() {
     var data  = sheet.getDataRange().getValues();
     var map   = {};
     for(var i=0;i<data.length;i++){
-      if(String(data[i][0])==='MEMO_META') map[String(data[i][1])]=String(data[i][2]);
+      if(String(data[i][0])==='MEMO_META') {
+        map[String(data[i][1])]={date:String(data[i][2]),author:String(data[i][13]||'')};
+      }
     }
     var list=[];
-    for(var k in map) if(map.hasOwnProperty(k)) list.push({name:k,date:map[k]});
+    for(var k in map) if(map.hasOwnProperty(k)) list.push({name:k,date:map[k].date,author:map[k].author});
     list.sort(function(a,b){return b.date.localeCompare(a.date);});
     return { success:true, list:list };
   } catch(e){ return {success:false,error:e.toString()}; }
@@ -353,14 +359,27 @@ function deleteMemo(fileName) {
 }
 
 /* ══ 메일 전송 ══ */
-function sendReportEmail(base64Img, subject) {
+function sendReportEmail(base64Img, subject, recipientEmail) {
   try {
-    var recipientEmail = PropertiesService.getScriptProperties().getProperty('REPORT_EMAIL') || 'dokil.lee@doosan.com';
+    var recipient = recipientEmail ||
+      PropertiesService.getScriptProperties().getProperty('REPORT_EMAIL') ||
+      Session.getEffectiveUser().getEmail();
     var blob = Utilities.newBlob(
       Utilities.base64Decode(base64Img.replace(/^data:image\/[a-z]+;base64,/, '')),
       'image/jpeg', 'report.jpg'
     );
-    GmailApp.sendEmail(recipientEmail, subject || '협력사 공정관리 협의록', '첨부 이미지를 확인하세요.', { attachments: [blob] });
+    blob.setName('report.jpg');
+    var htmlBody =
+      '<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">' +
+      '<p>안녕하세요,</p>' +
+      '<p>공정관리 협의록을 아래와 같이 공유드립니다.</p>' +
+      '<br><img src="cid:reportImg" style="max-width:100%;border:1px solid #ccc;border-radius:4px"><br><br>' +
+      '<p style="color:#888;font-size:12px">본 메일은 스마트 공정관리 앱에서 자동 발송되었습니다.</p>' +
+      '</div>';
+    GmailApp.sendEmail(recipient, subject || '협력사 공정관리 협의록', '', {
+      htmlBody: htmlBody,
+      inlineImages: { reportImg: blob }
+    });
     return { success: true };
   } catch(e) { return { success: false, error: e.toString() }; }
 }

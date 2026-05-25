@@ -23,8 +23,8 @@
       </div>
     </div>
     <div class="hdr-credit">
-      <div class="hdr-credit-label">App Created by</div>
-      <div class="hdr-credit-name">Jackson Lee &amp; Dokil Lee</div>
+      <div class="hdr-credit-label">파워서비스</div>
+      <div class="hdr-credit-name">Sourcing팀</div>
     </div>
   </div>
 </header>
@@ -45,9 +45,6 @@
     <div class="sum-top-row">
       <div class="sum-lbl">■ 회의결과 Summary</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn-ai" onclick="openP1AiReview()" style="background:linear-gradient(135deg,#0d6efd,#6610f2)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>AI 수정
-        </button>
         <button class="btn-ai" onclick="openAiChat(1)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 014 4v1a4 4 0 01-8 0V6a4 4 0 014-4z"/><path d="M18 14c2 1 3 3 3 5v2H3v-2c0-2 1-4 3-5"/></svg>AI 활용
         </button>
@@ -69,8 +66,7 @@
     </div>
     <div class="tbsep"></div>
     <div class="tbg">
-      <button class="btn" onclick="addPhoto()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>사진추가</button>
-      <button class="btn" onclick="doMail(false)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>메일송부</button>
+      <button class="btn" onclick="openMailModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>메일송부</button>
       <button class="btn redtxt" onclick="applyRedText()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px"><path d="M4 20h4l10-10-4-4L4 20z"/></svg>
         <span style="color:#cc1122;font-weight:900;font-size:14px">A</span>빨간글씨
@@ -100,7 +96,6 @@
     </tr></thead><tbody id="tb1"></tbody></table>
   </div>
   <div id="pharea" class="ph-area"></div>
-  <input type="file" id="phInp" multiple accept="image/*" style="display:none">
 </div>
 
 <!-- ══ PAGE 2: 업체/품목별 부하관리 ══ -->
@@ -181,58 +176,77 @@
   <div id="ss3" class="sstat unsaved"><span class="dot"></span><span id="ss3t">not saved_ 저장하세요</span></div>
 
   <div class="toolbar">
-    <button class="btn save" onclick="openSave(3)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>저장
-    </button>
-    <button class="btn grn" onclick="openLoad(3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>불러오기</button>
-    <button class="btn" onclick="memoClear()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>새 메모</button>
-    <button class="btn teal" onclick="memoExportText()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>텍스트 다운로드</button>
+    <div class="tbg">
+      <button class="btn-ai" onclick="openMemoAiReview()" style="background:linear-gradient(135deg,#0d6efd,#6610f2);font-size:12px;padding:5px 10px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>AI 수정
+      </button>
+      <button class="btn-ai" onclick="openAiChat(3)" style="font-size:12px;padding:5px 10px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M12 2a4 4 0 014 4v1a4 4 0 01-8 0V6a4 4 0 014-4z"/><path d="M18 14c2 1 3 3 3 5v2H3v-2c0-2 1-4 3-5"/></svg>AI 활용
+      </button>
+    </div>
     <div class="tbsep"></div>
-    <span style="font-size:12px;color:var(--txt3);font-family:var(--fm)">선택 표시:</span>
-    <button class="btn" id="btn-toggle-content2" onclick="memoToggleSection('showContent2')">숨기기</button>
-    <button class="btn" id="btn-toggle-issues"   onclick="memoToggleSection('showIssues')">숨기기</button>
-    <button class="btn" id="btn-toggle-actions"  onclick="memoToggleSection('showActions')">숨기기</button>
+    <div class="tbg">
+      <button class="btn redtxt" onclick="applyRedTextMemo()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px"><path d="M4 20h4l10-10-4-4L4 20z"/></svg>
+        <span style="color:#cc1122;font-weight:900;font-size:14px">A</span>빨간글씨
+      </button>
+      <button class="btn teal" onclick="memoFullscreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>전체화면</button>
+    </div>
+    <div class="tbsep"></div>
+    <div class="tbg">
+      <button class="btn" onclick="memoClear()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>새 메모</button>
+      <button class="btn" onclick="memoExportText()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>텍스트 다운</button>
+      <button class="btn" onclick="openMemoOptions()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>섹션 옵션</button>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:5px;align-items:center">
+      <button class="btn save" onclick="openSave(3)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>저장
+      </button>
+      <button class="btn grn" onclick="openLoad(3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>불러오기</button>
+    </div>
   </div>
 
-  <div class="memo-form">
-    <div class="memo-meta-grid">
-      <div class="memo-row">
-        <div class="memo-lbl">📅 일시</div>
-        <input type="text" id="m3-date" class="memo-inp" placeholder="예: 2026-05-24 14:00">
-      </div>
-      <div class="memo-row">
-        <div class="memo-lbl">📍 장소</div>
-        <input type="text" id="m3-place" class="memo-inp" placeholder="예: 1층 회의실">
-      </div>
-      <div class="memo-row">
-        <div class="memo-lbl">📌 제목</div>
-        <input type="text" id="m3-title" class="memo-inp" placeholder="회의/메모 제목">
-      </div>
-    </div>
-    <div class="memo-row">
-      <div class="memo-lbl">👥 참석자</div>
-      <textarea id="m3-attendees" class="memo-ta" rows="2" placeholder="참석자 이름 입력 (예: 이재성, 이도길, ...)"></textarea>
-    </div>
-    <div class="memo-row">
-      <div class="memo-lbl">📝 회의 내용</div>
-      <textarea id="m3-content" class="memo-ta" rows="5" placeholder="주요 회의 내용을 입력하세요..."></textarea>
-    </div>
-    <div id="m3-sec-content2" class="memo-row">
-      <div class="memo-lbl">📋 추가 내용</div>
-      <textarea id="m3-content2" class="memo-ta" rows="3" placeholder="추가 내용 입력..."></textarea>
-    </div>
-    <div id="m3-sec-issues" class="memo-row">
-      <div class="memo-lbl" style="color:var(--warn)">⚠ 이슈사항</div>
-      <textarea id="m3-issues" class="memo-ta" rows="3" placeholder="이슈사항 및 문제점 입력..."></textarea>
-    </div>
-    <div id="m3-sec-actions" class="memo-row">
-      <div class="memo-lbl" style="color:var(--teal)">✅ 조치사항 / Action Items</div>
-      <textarea id="m3-actions" class="memo-ta" rows="3" placeholder="조치사항 및 후속 Action Items 입력..."></textarea>
-    </div>
-    <div class="memo-row">
-      <div class="memo-lbl">💬 비고</div>
-      <textarea id="m3-remarks" class="memo-ta" rows="2" placeholder="기타 비고사항..."></textarea>
-    </div>
+  <div class="memo-tbl-wrap">
+    <table class="memo-tbl">
+      <tbody>
+        <tr>
+          <td class="memo-hdr-cell">📅 일시</td>
+          <td class="memo-val-cell"><input type="text" id="m3-date" class="memo-inp" placeholder="예: 2026-05-24 14:00"></td>
+        </tr>
+        <tr>
+          <td class="memo-hdr-cell">📍 장소</td>
+          <td class="memo-val-cell"><input type="text" id="m3-place" class="memo-inp" placeholder="예: 1층 회의실"></td>
+        </tr>
+        <tr>
+          <td class="memo-hdr-cell">📌 제목</td>
+          <td class="memo-val-cell"><input type="text" id="m3-title" class="memo-inp" placeholder="회의/메모 제목"></td>
+        </tr>
+        <tr>
+          <td class="memo-hdr-cell">👥 참석자</td>
+          <td class="memo-val-cell"><textarea id="m3-attendees" class="memo-ta" rows="2" placeholder="참석자 이름 입력 (예: 이재성, 이도길, ...)"></textarea></td>
+        </tr>
+        <tr>
+          <td class="memo-hdr-cell">📝 회의 내용</td>
+          <td class="memo-val-cell"><textarea id="m3-content" class="memo-ta" rows="5" placeholder="주요 회의 내용을 입력하세요..."></textarea></td>
+        </tr>
+        <tr id="m3-sec-content2">
+          <td class="memo-hdr-cell">📋 추가 내용</td>
+          <td class="memo-val-cell"><textarea id="m3-content2" class="memo-ta" rows="3" placeholder="추가 내용 입력..."></textarea></td>
+        </tr>
+        <tr id="m3-sec-issues">
+          <td class="memo-hdr-cell" style="color:#ffb84d">⚠ 이슈사항</td>
+          <td class="memo-val-cell"><textarea id="m3-issues" class="memo-ta" rows="3" placeholder="이슈사항 및 문제점 입력..."></textarea></td>
+        </tr>
+        <tr id="m3-sec-actions">
+          <td class="memo-hdr-cell" style="color:#6fedd6">✅ 조치사항</td>
+          <td class="memo-val-cell"><textarea id="m3-actions" class="memo-ta" rows="3" placeholder="조치사항 및 후속 Action Items 입력..."></textarea></td>
+        </tr>
+        <tr>
+          <td class="memo-hdr-cell">💬 비고</td>
+          <td class="memo-val-cell"><textarea id="m3-remarks" class="memo-ta" rows="2" placeholder="기타 비고사항..."></textarea></td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </div>
 
@@ -293,6 +307,7 @@
   <button class="mclose" onclick="closeModal('m-save')">✕</button>
   <div class="modal-title">💾 파일 저장</div>
   <div class="mrow"><div class="mlbl">저장 파일명</div><input type="text" id="sv-fn" class="minp" placeholder="예: 2026-05-24_삼성중공업"></div>
+  <div class="mrow"><div class="mlbl">작성자</div><input type="text" id="sv-author" class="minp" placeholder="작성자 이름 입력"></div>
   <div class="mact"><button class="btn" onclick="closeModal('m-save')">취소</button><button class="btn save" onclick="execSave()">💾 저장</button></div>
 </div></div>
 
@@ -300,6 +315,7 @@
 <div id="m-load" class="mbg"><div class="modal">
   <button class="mclose" onclick="closeModal('m-load')">✕</button>
   <div class="modal-title">📂 불러오기</div>
+  <div class="mrow"><div class="mlbl">작성자 검색</div><input type="text" id="ld-author" class="minp" placeholder="작성자로 검색..." oninput="filterLoadList()"></div>
   <div class="mrow"><div class="mlbl">저장된 파일 선택</div>
     <div class="lsel" id="llist"><div style="color:var(--txt3);font-size:13px;padding:14px;text-align:center">불러오는 중...</div></div>
   </div>
@@ -349,6 +365,37 @@
   </div>
 </div></div>
 
+<!-- 메일 송부 -->
+<div id="m-mail" class="mbg"><div class="modal" style="max-width:420px">
+  <button class="mclose" onclick="closeModal('m-mail')">✕</button>
+  <div class="modal-title">📧 메일 송부</div>
+  <div class="mrow">
+    <div class="mlbl">수신자 이메일</div>
+    <input type="email" id="mail-to" class="minp" placeholder="example@doosan.com">
+  </div>
+  <div class="mact">
+    <button class="btn" onclick="closeModal('m-mail')">취소</button>
+    <button class="btn save" onclick="execSendMail()">📧 메일 송부</button>
+  </div>
+</div></div>
+
+<!-- 메모 섹션 옵션 -->
+<div id="m-memo-opts" class="mbg"><div class="modal" style="max-width:360px">
+  <button class="mclose" onclick="closeModal('m-memo-opts')">✕</button>
+  <div class="modal-title">⚙ 메모 섹션 설정</div>
+  <div class="mrow">
+    <div class="mlbl" style="margin-bottom:10px">표시할 섹션 선택</div>
+    <div class="cbg" style="background:#fff;border:1.5px solid #c4d8f0;border-radius:6px;padding:14px 18px;gap:13px">
+      <label class="cbr"><input type="checkbox" id="ck-memo-content2" onchange="applyMemoOption('showContent2')"> 추가 내용</label>
+      <label class="cbr"><input type="checkbox" id="ck-memo-issues"   onchange="applyMemoOption('showIssues')"> 이슈사항</label>
+      <label class="cbr"><input type="checkbox" id="ck-memo-actions"  onchange="applyMemoOption('showActions')"> 조치사항</label>
+    </div>
+  </div>
+  <div class="mact">
+    <button class="btn acc" onclick="closeModal('m-memo-opts')">확인</button>
+  </div>
+</div></div>
+
 <!-- AI 비밀번호 -->
 <div id="m-ai-pw" class="mbg"><div class="modal" style="max-width:380px">
   <button class="mclose" onclick="closeModal('m-ai-pw')">✕</button>
@@ -368,7 +415,7 @@
 <!-- ══ FULLSCREEN ══ -->
 <div id="fsov">
   <div class="fs-bar">
-    <button class="fs-btn mail" onclick="doMail(true)">메일송부</button>
+    <button class="fs-btn mail" onclick="APP._mailFromFS=true;document.getElementById('mail-to').value='';openModal('m-mail')">메일송부</button>
     <button class="fs-btn share" onclick="doShareFromFs()">공유</button>
     <button class="fs-btn close" onclick="closeFS()">✕ 닫기</button>
   </div>
