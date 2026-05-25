@@ -346,7 +346,6 @@ function execSave() {
   if (!fn) { showToast('파일명을 입력하세요', true); return; }
   var authorEl = document.getElementById('sv-author');
   var author = authorEl ? authorEl.value.trim() : '';
-  alert('[DEBUG] 전송할 작성자: "' + author + '"\n파일명: "' + fn + '"\n호출 GAS URL:\n' + (CONFIG.GAS_URL || '없음'));
   closeModal('m-save'); showToast('저장 중...');
   var pg = APP.saveFor;
   var saveOk = function(nm, r) {
