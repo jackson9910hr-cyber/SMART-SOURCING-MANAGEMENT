@@ -104,7 +104,7 @@ document.addEventListener('keyup', function() {
 function insertRedMarker(ta, sel) {
   if (!ta) return;
   var v = ta.value, s = sel.s, e = sel.e;
-  if (s === e) { showToast('빨간글씨로 바꿀 텍스트를 먼저 선택하세요', true); return; }
+  if (s === e) { showToast('빨간글씨로 바꿼 텍스트를 먼저 선택하세요', true); return; }
   var selected = v.substring(s, e);
   ta.value = v.substring(0, s) + '[R]' + selected + '[/R]' + v.substring(e);
   arTA(ta);
@@ -125,7 +125,7 @@ function applyRedText2() {
 }
 
 function renderRedMarkers(txt) {
-  return escH(txt).replace(/\[R\](.*?)\[\/R\]/g, function(m, inner) {
+  return escH(txt).replace(/\[R\]([\s\S]*?)\[\/R\]/g, function(m, inner) {
     return '<span style="color:#cc1122;font-weight:700">' + inner + '</span>';
   });
 }
@@ -336,12 +336,15 @@ function execDel() {
 function openSave(pg) {
   APP.saveFor = pg;
   document.getElementById('sv-fn').value = todayStr() + '_';
+  var authorEl = document.getElementById('sv-author');
+  if (authorEl) authorEl.value = '';
   openModal('m-save');
 }
 
 function execSave() {
   var fn = document.getElementById('sv-fn').value.trim();
   if (!fn) { showToast('파일명을 입력하세요', true); return; }
+  var author = ((document.getElementById('sv-author') || {}).value || '').trim();
   closeModal('m-save'); showToast('저장 중...');
   var pg = APP.saveFor;
   if (pg === 1) {
@@ -350,7 +353,8 @@ function execSave() {
       summary: document.getElementById('p1sum').value,
       rows: getData1(),
       colSettings: APP.p1.colVis,
-      photos: APP.p1.photos
+      photos: APP.p1.photos,
+      author: author
     }).then(function(r) {
       if (r.success) { setClean(1, fn); showToast('저장 완료: ' + fn); }
       else showToast('오류: ' + r.error, true);
@@ -364,13 +368,14 @@ function execSave() {
       summary2: document.getElementById('p2sum').value,
       rows: rows2,
       progress: progressArr,
-      basedate: APP.p2.basedate
+      basedate: APP.p2.basedate,
+      author: author
     }).then(function(r) {
       if (r.success) { setClean(2, fn); showToast('저장 완료: ' + fn); }
       else showToast('오류: ' + r.error, true);
     });
   } else if (pg === 3) {
-    memoExecSave(fn);
+    memoExecSave(fn, author);
   }
 }
 
@@ -387,10 +392,12 @@ function openLoad(pg) {
     var sorted = r.list.slice().sort(function(a,b) { return b.name > a.name ? 1 : b.name < a.name ? -1 : 0; });
     sorted.forEach(function(item) {
       var d = document.createElement('div'); d.className = 'litem';
-      d.innerHTML = '<span class="litem-name">' + escH(item.name) + '</span><span class="litem-date">' + escH(item.date) + '</span>';
+      var authorBadge = item.author ? '<span class="litem-author">' + escH(item.author) + '</span>' : '';
+      d.innerHTML = '<span class="litem-name">' + escH(item.name) + '</span>' + authorBadge + '<span class="litem-date">' + escH((item.date||'').slice(0,10)) + '</span>';
       d.onclick = function() { ll.querySelectorAll('.litem').forEach(function(x) { x.classList.remove('sel'); }); d.classList.add('sel'); APP.loadSel = item.name; };
       ll.appendChild(d);
     });
+    filterLoadList();
   });
 }
 
@@ -470,11 +477,48 @@ function dlOrShare(url, fname) {
 
 function triggerDL(url, fname) { var a = document.createElement('a'); a.href = url; a.download = fname; a.click(); }
 
-function sendMail(dataUrl, subject) {
+function openMailModal() {
+  APP._mailFromFS = false;
+  document.getElementById('mail-to').value = '';
+  openModal('m-mail');
+}
+
+function execSendMail() {
+  var to = (document.getElementById('mail-to').value || '').trim();
+  if (!to) { showToast('이메일 주소를 입력하세요', true); return; }
+  closeModal('m-mail');
+  showToast('메일 준비 중...');
+  var fromFS = APP._mailFromFS;
+  if (fromFS) {
+    captureEl(document.getElementById('fscnt'), function(url) { sendMail(url, '협력사 공정관리 협의록', to); }, true);
+  } else {
+    var tmp = document.createElement('div');
+    tmp.style.cssText = 'position:fixed;left:-99999px;top:0;width:1200px;background:#fff;padding:24px;border:0';
+    document.body.appendChild(tmp); buildFsContent(tmp);
+    setTimeout(function() {
+      captureEl(tmp, function(url) { document.body.removeChild(tmp); sendMail(url, '협력사 공정관리 협의록', to); }, true);
+    }, 80);
+  }
+}
+
+function sendMail(dataUrl, subject, recipient) {
   var b64 = dataUrl.indexOf(',') >= 0 ? dataUrl.split(',')[1] : dataUrl;
-  callAPI('sendReportEmail', { base64Img: b64, subject: subject || '협력사 공정관리 협의록' }).then(function(r) {
+  callAPI('sendReportEmail', { base64Img: b64, subject: subject || '협력사 공정관리 협의록', recipientEmail: recipient }).then(function(r) {
     if (r && r.success) showToast('메일 송부 완료!');
     else showToast('메일 실패: ' + (r && r.error ? r.error : 'Unknown'), true);
+  });
+}
+
+function filterLoadList() {
+  var filterEl = document.getElementById('ld-author');
+  var filter = filterEl ? filterEl.value.trim().toLowerCase() : '';
+  var items = document.getElementById('llist').querySelectorAll('.litem');
+  items.forEach(function(item) {
+    if (!filter) { item.style.display = ''; return; }
+    var authorEl = item.querySelector('.litem-author');
+    var author = authorEl ? authorEl.textContent.toLowerCase() : '';
+    var name = (item.querySelector('.litem-name') || {}).textContent || '';
+    item.style.display = (author.indexOf(filter) >= 0 || name.toLowerCase().indexOf(filter) >= 0) ? '' : 'none';
   });
 }
 
@@ -531,21 +575,6 @@ function focusBasedateManual() {
 /* ══ 이벤트 초기화 ══ */
 document.addEventListener('DOMContentLoaded', function() {
   initSumTA();
-
-  // 사진 파일 선택
-  document.getElementById('phInp').addEventListener('change', function(e) {
-    var files = Array.from(e.target.files); if (!files.length) return;
-    var group = { desc: [], data: [] }, loaded = 0;
-    files.forEach(function(f, fi) {
-      var reader = new FileReader();
-      reader.onload = function(ev) {
-        group.data[fi] = ev.target.result; group.desc[fi] = ''; loaded++;
-        if (loaded === files.length) { APP.p1.photos.push(group); renderPhotos(); setDirty(1); }
-      };
-      reader.readAsDataURL(f);
-    });
-    e.target.value = '';
-  });
 
   // 기준일 드롭다운 외부 클릭 닫기
   document.addEventListener('click', function(e) {
