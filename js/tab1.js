@@ -180,26 +180,17 @@ function doShare() {
   tmp.style.cssText = 'position:fixed;left:-99999px;top:0;width:1200px;background:#fff;padding:24px;border:0';
   document.body.appendChild(tmp); buildFsContent(tmp);
   setTimeout(function() {
-    captureEl(tmp, function(url) { document.body.removeChild(tmp); dlOrShare(url, '협의록_캡쳐.jpg'); showToast('다운로드/공유 실행'); });
+    captureEl(tmp, function(url) { document.body.removeChild(tmp); dlOrShare(url, '협의록_쳪쳐.jpg'); showToast('다운로드/공유 실행'); });
   }, 80);
 }
 
 function doShareFromFs() {
-  showToast('캡쳐 중...');
-  captureEl(document.getElementById('fscnt'), function(url) { dlOrShare(url, '협의록_캡쳐.jpg'); showToast('다운로드/공유 실행'); });
+  showToast('쳪쳐 중...');
+  captureEl(document.getElementById('fscnt'), function(url) { dlOrShare(url, '협의록_쳪쳐.jpg'); showToast('다운로드/공유 실행'); });
 }
 
 function doMail(fromFS) {
-  if (fromFS) {
-    showToast('메일 준비 중...');
-    captureEl(document.getElementById('fscnt'), function(url) { sendMail(url, '협력사 공정관리 협의록'); }, true);
-  } else {
-    showToast('메일 준비 중...');
-    var tmp = document.createElement('div');
-    tmp.style.cssText = 'position:fixed;left:-99999px;top:0;width:1200px;background:#fff;padding:24px;border:0';
-    document.body.appendChild(tmp); buildFsContent(tmp);
-    setTimeout(function() {
-      captureEl(tmp, function(url) { document.body.removeChild(tmp); sendMail(url, '협력사 공정관리 협의록'); }, true);
-    }, 80);
-  }
+  APP._mailFromFS = !!fromFS;
+  document.getElementById('mail-to').value = '';
+  openModal('m-mail');
 }
