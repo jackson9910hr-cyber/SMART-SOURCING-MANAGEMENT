@@ -347,6 +347,7 @@ function execSave() {
   var author = ((document.getElementById('sv-author') || {}).value || '').trim();
   closeModal('m-save'); showToast('저장 중...');
   var pg = APP.saveFor;
+  var saveOk = function(nm, au) { setClean(pg, nm); showToast('저장 완료: ' + nm + (au ? ' [' + au + ']' : '')); };
   if (pg === 1) {
     callAPI('saveMeeting', {
       fileName: fn,
@@ -356,7 +357,7 @@ function execSave() {
       photos: APP.p1.photos,
       author: author
     }).then(function(r) {
-      if (r.success) { setClean(1, fn); showToast('저장 완료: ' + fn); }
+      if (r.success) { saveOk(fn, author); }
       else showToast('오류: ' + r.error, true);
     });
   } else if (pg === 2) {
@@ -371,7 +372,7 @@ function execSave() {
       basedate: APP.p2.basedate,
       author: author
     }).then(function(r) {
-      if (r.success) { setClean(2, fn); showToast('저장 완료: ' + fn); }
+      if (r.success) { saveOk(fn, author); }
       else showToast('오류: ' + r.error, true);
     });
   } else if (pg === 3) {

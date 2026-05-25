@@ -231,12 +231,4 @@ document.addEventListener('DOMContentLoaded', function() {
     inp.addEventListener('input', function() { memoDirty(); });
   });
   memoApplyOptions();
-
-  // execLoad 모달의 불러오기 버튼이 탭3에서는 memoExecLoad를 호출하도록 오버라이드
-  var loadBtn = document.getElementById('btn-exec-load');
-  if (loadBtn) {
-    loadBtn.addEventListener('click', function() {
-      if (APP.loadFor === 3) { memoExecLoad(); } else { execLoad(); }
-    });
-  }
 });
