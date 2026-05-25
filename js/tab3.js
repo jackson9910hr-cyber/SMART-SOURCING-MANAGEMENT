@@ -92,7 +92,8 @@ function memoOpenLoad() {
     var sorted = r.list.slice().sort(function(a, b) { return b.name > a.name ? 1 : b.name < a.name ? -1 : 0; });
     sorted.forEach(function(item) {
       var d = document.createElement('div'); d.className = 'litem';
-      d.innerHTML = '<span class="litem-name">' + escH(item.name) + '</span><span class="litem-date">' + escH(item.date) + '</span>';
+      var ab = item.author ? '<span class="litem-author">' + escH(item.author) + '</span>' : '';
+      d.innerHTML = '<span class="litem-name">' + escH(item.name) + '</span>' + ab + '<span class="litem-date">' + escH((item.date||'').slice(0,10)) + '</span>';
       d.onclick = function() { ll.querySelectorAll('.litem').forEach(function(x) { x.classList.remove('sel'); }); d.classList.add('sel'); APP.loadSel = item.name; };
       ll.appendChild(d);
     });
