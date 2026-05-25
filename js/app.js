@@ -344,7 +344,9 @@ function openSave(pg) {
 function execSave() {
   var fn = document.getElementById('sv-fn').value.trim();
   if (!fn) { showToast('파일명을 입력하세요', true); return; }
-  var author = ((document.getElementById('sv-author') || {}).value || '').trim();
+  var authorEl = document.getElementById('sv-author');
+  var author = authorEl ? authorEl.value.trim() : '';
+  alert('[DEBUG] 전송할 작성자: "' + author + '"\n파일명: "' + fn + '"\n(다음 업데이트에서 이 알림 제거됩니다)');
   closeModal('m-save'); showToast('저장 중...');
   var pg = APP.saveFor;
   var saveOk = function(nm, r) {
