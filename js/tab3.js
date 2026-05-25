@@ -118,7 +118,7 @@ function memoExecSave(fn, author) {
     options: MEMO_STATE.options,
     author: author || ''
   }).then(function(r) {
-    if (r.success) { memoClean(fn); showToast('저장 완료: ' + fn); }
+    if (r.success) { memoClean(fn); var au = r.savedAuthor !== undefined ? r.savedAuthor : ''; showToast('저장 완료: ' + fn + (au ? ' [작성자: ' + au + ']' : '')); }
     else showToast('오류: ' + r.error, true);
   });
 }

@@ -128,8 +128,9 @@ function saveMeeting(payload) {
     var colSet   = payload.colSettings || {};
     var photos   = payload.photos   || [];
     var ts = nowStr();
+    var author = payload.author || '';
     deleteByFileName(sheet, fileName, 'MTG_');
-    sheet.appendRow(['MTG_META', fileName, ts, summary, 0, payload.author||'','','','','','','','','', JSON.stringify(colSet), '', '']);
+    sheet.appendRow(['MTG_META', fileName, ts, summary, 0, author,'','','','','','','','', JSON.stringify(colSet), '', '']);
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i] || [];
       var pd  = (photos[i] && photos[i].data) ? JSON.stringify(photos[i].data) : '';
@@ -138,7 +139,7 @@ function saveMeeting(payload) {
         row[0]||'', row[1]||'', row[2]||'', row[3]||'', row[4]||'', row[5]||'',
         row[6]||'', row[7]||'', row[8]||'', JSON.stringify(colSet), pd, pdc]);
     }
-    return { success: true };
+    return { success: true, savedAuthor: author };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
 
@@ -205,9 +206,10 @@ function saveLoad(payload) {
     var progress     = payload.progress || [];
     var basedate     = payload.basedate || '';
     var ts = nowStr();
+    var author = payload.author || '';
     deleteByFileName(sheet, fileName, 'LOAD_');
     sheet.appendRow(['LOAD_META', fileName, ts, JSON.stringify(processNames), 0,
-      summary2,'','','','','','','','','','','','','','',basedate, payload.author||'','','','','','']);
+      summary2,'','','','','','','','','','','','','','',basedate, author,'','','','','']);
     for (var i = 0; i < rows.length; i++) {
       var row  = rows[i] || [];
       var prog = progress[i] ? JSON.stringify(progress[i]) : '';
@@ -216,7 +218,7 @@ function saveLoad(payload) {
         row[6]||'', row[7]||'', row[8]||'', row[9]||'', row[10]||'',
         row[11]||'', row[12]||'', row[13]||'', row[14]||'', prog,'','']);
     }
-    return { success: true };
+    return { success: true, savedAuthor: author };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
 
@@ -296,13 +298,14 @@ function saveMemo(payload) {
         sheet.deleteRow(i+1);
       }
     }
+    var author = payload.author || '';
     sheet.appendRow(['MEMO_META', fileName, ts,
       fields.date||'', fields.place||'', fields.attendees||'',
       fields.title||'', fields.content||'', fields.content2||'',
       fields.issues||'', fields.actions||'', fields.remarks||'',
-      JSON.stringify(options), payload.author||''
+      JSON.stringify(options), author
     ]);
-    return { success: true };
+    return { success: true, savedAuthor: author };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
 
