@@ -452,7 +452,7 @@ function execDeleteLoadedFile() {
   });
 }
 
-/* ══ 캡쳐/공유/메일 ══ */
+/* ══ 쳪쳐/공유/메일 ══ */
 function captureEl(el, cb, forMail) {
   var ow = el.style.overflow; el.style.overflow = 'visible';
   var sc = forMail ? 0.7 : 1.5; var q = forMail ? 0.55 : 0.9;
@@ -523,7 +523,7 @@ function filterLoadList() {
 }
 
 /* ══ 사진 기능 ══ */
-function addPhoto() { document.getElementById('phInp').click(); }
+function addPhoto() { var phInp = document.getElementById('phInp'); if (phInp) phInp.click(); }
 
 function renderPhotos() {
   var pa = document.getElementById('pharea'); pa.innerHTML = '';

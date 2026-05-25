@@ -67,7 +67,7 @@ function doGet(e) {
 /* ══ AI 비밀번호 인증 ══ */
 function verifyAiPassword(password) {
   var pw = PropertiesService.getScriptProperties().getProperty('AI_PASSWORD');
-  if (!pw) return { success: true, verified: true }; // 비밀번호 미설정 시 허용
+  if (!pw) return { success: true, verified: true };
   return { success: true, verified: (password === pw) };
 }
 
@@ -76,7 +76,6 @@ function callOpenAI_auth(payload) {
   if (pw && payload.aiPassword !== pw) {
     return { success: false, error: 'AI 비밀번호가 올바르지 않습니다.' };
   }
-  // aiPassword 필드 제거 후 OpenAI 호출
   var p = {};
   for (var k in payload) { if (k !== 'aiPassword') p[k] = payload[k]; }
   return callOpenAI(p);

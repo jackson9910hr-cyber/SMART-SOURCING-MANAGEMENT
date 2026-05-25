@@ -12,13 +12,11 @@ function isAiUnlocked() { return sessionStorage.getItem('aiUnlocked') === 'true'
 
 function requireAiAuth(callback) {
   if (isAiUnlocked()) { callback(); return; }
-  // 비밀번호 모달 표시
   var modal = document.getElementById('m-ai-pw');
-  if (!modal) { callback(); return; } // 모달 없으면 바로 진행
+  if (!modal) { callback(); return; }
   document.getElementById('ai-pw-input').value = '';
   document.getElementById('ai-pw-error').style.display = 'none';
   openModal('m-ai-pw');
-  // 확인 버튼 핸들러 (일회성)
   var confirmBtn = document.getElementById('ai-pw-confirm');
   var newBtn = confirmBtn.cloneNode(true);
   confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
