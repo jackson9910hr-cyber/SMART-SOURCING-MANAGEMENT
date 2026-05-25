@@ -2,7 +2,10 @@
 // 스마트 공정관리 앱 - Google Apps Script (GAS) 백엔드
 // ══════════════════════════════════════════════════════════════
 
-var SS_ID  = '16oPn8hzHJKYz2bK-cGs4awuIf_cU2HnCo3xh0CDUZ2U';
+// SS_ID: GAS 스크립트 속성(Script Properties)에 SPREADSHEET_ID 키로 설정하거나,
+// 아래 기본값을 직접 수정하세요.
+var SS_ID  = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID')
+             || '16oPn8hzHJKYz2bK-cGs4awuIf_cU2HnCo3xh0CDUZ2U';
 var SHEET1 = '기록';
 var SHEET2 = '기록2';
 var SHEET3 = '기록3';
