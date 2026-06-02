@@ -149,23 +149,21 @@ function memoFullscreen() {
   hd.textContent = '◈ 메모/노트' + (f.title ? ' — ' + f.title : ''); fc.appendChild(hd);
   var tbl = document.createElement('table');
   tbl.style.cssText = 'width:100%;border-collapse:collapse;font-size:14px;font-family:Noto Sans KR,sans-serif;border:1px solid #a8c4e0';
+  var dateVal = (function(s) {
+    if (!s) return s;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    var d = new Date(s); if (isNaN(d.getTime())) return s;
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  })(f.date);
   var rows = [
-    { label: '📅 일자', val: f.date }, { label: '📍 장소', val: f.place },
-    { label: '👥 참석자', val: f.attendees }, { label: '📌 제목', val: f.title },
+    { label: '📌 제목', val: f.title }, { label: '📅 일자', val: dateVal },
+    { label: '📍 장소', val: f.place }, { label: '👥 참석자', val: f.attendees },
     { label: '📝 내용', val: f.content }
   ];
   if (MEMO_STATE.options.showContent2 && f.content2) rows.push({ label: '📋 추가', val: f.content2 });
   if (MEMO_STATE.options.showIssues && f.issues) rows.push({ label: '⚠ 이슈', val: f.issues });
   if (MEMO_STATE.options.showActions && f.actions) rows.push({ label: '✅ 조치', val: f.actions });
   if (f.remarks) rows.push({ label: '💬 비고', val: f.remarks });
-  var hdrTr = document.createElement('tr');
-  var hdrTh1 = document.createElement('td');
-  hdrTh1.style.cssText = 'background:linear-gradient(160deg,#001130,#002060);color:rgba(255,255,255,.85);font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px;padding:7px 14px;width:110px;border-bottom:2px solid rgba(255,255,255,.5);border-right:2px solid rgba(255,255,255,.25);letter-spacing:1.5px;text-transform:uppercase';
-  hdrTh1.textContent = '구분';
-  var hdrTh2 = document.createElement('td');
-  hdrTh2.style.cssText = 'background:linear-gradient(160deg,#001130,#002060);color:rgba(255,255,255,.85);font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px;padding:7px 14px;border-bottom:2px solid rgba(255,255,255,.5);letter-spacing:1.5px;text-transform:uppercase';
-  hdrTh2.textContent = '내용';
-  hdrTr.appendChild(hdrTh1); hdrTr.appendChild(hdrTh2); tbl.appendChild(hdrTr);
   rows.forEach(function(fld) {
     var tr = document.createElement('tr');
     var th = document.createElement('td');
