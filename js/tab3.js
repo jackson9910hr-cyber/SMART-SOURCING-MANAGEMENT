@@ -161,10 +161,10 @@ function memoFullscreen() {
   rows.forEach(function(fld) {
     var tr = document.createElement('tr');
     var th = document.createElement('td');
-    th.style.cssText = 'background:linear-gradient(160deg,#001f4d,#003580);color:#fff;font-family:Rajdhani,sans-serif;font-weight:700;font-size:13px;padding:10px 14px;width:110px;vertical-align:top;border-bottom:1px solid rgba(255,255,255,.12);white-space:nowrap';
+    th.style.cssText = 'background:linear-gradient(160deg,#001f4d,#003580);color:#fff;font-family:Rajdhani,sans-serif;font-weight:700;font-size:13px;padding:10px 14px;width:110px;vertical-align:top;border-bottom:1px solid rgba(255,255,255,.4);border-right:2px solid rgba(255,255,255,.25);white-space:nowrap';
     th.textContent = fld.label;
     var td = document.createElement('td');
-    td.style.cssText = 'background:#fff;color:#0d1e30;padding:10px 14px;border-bottom:1px solid #dde9f7;font-size:14px;line-height:1.65;white-space:pre-wrap;vertical-align:top';
+    td.style.cssText = 'background:#fff;color:#0d1e30;padding:10px 14px;border-bottom:1px solid #a8c4e0;font-size:14px;line-height:1.65;white-space:pre-wrap;vertical-align:top';
     td.textContent = fld.val || '';
     tr.appendChild(th); tr.appendChild(td); tbl.appendChild(tr);
   });
