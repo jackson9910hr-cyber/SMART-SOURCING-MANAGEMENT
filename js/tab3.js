@@ -158,11 +158,11 @@ function memoFullscreen() {
   var rows = [
     { label: '📌 제목', val: f.title }, { label: '📅 일자', val: dateVal },
     { label: '📍 장소', val: f.place }, { label: '👥 참석자', val: f.attendees },
-    { label: '📝 내용', val: f.content }
+    { label: '📝 회의내용', val: f.content }
   ];
   if (MEMO_STATE.options.showContent2 && f.content2) rows.push({ label: '📋 추가', val: f.content2 });
   if (MEMO_STATE.options.showIssues && f.issues) rows.push({ label: '⚠ 이슈', val: f.issues });
-  if (MEMO_STATE.options.showActions && f.actions) rows.push({ label: '✅ 조치', val: f.actions });
+  if (MEMO_STATE.options.showActions && f.actions) rows.push({ label: '✅ 조치사항', val: f.actions });
   if (f.remarks) rows.push({ label: '💬 비고', val: f.remarks });
   rows.forEach(function(fld) {
     var tr = document.createElement('tr');
@@ -200,27 +200,35 @@ function openMemoAiReview() {
   });
 }
 
-function memoExportText() {
+function memoExportExcel() {
+  if (typeof XLSX === 'undefined') { showToast('라이브러리 로딩 중', true); return; }
   var f = memoGetFields();
-  var lines = [];
-  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  lines.push('  ' + (f.title || '회의 메모'));
-  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  if (f.date) lines.push('일시: ' + f.date);
-  if (f.place) lines.push('장소: ' + f.place);
-  if (f.attendees) lines.push('참석자: ' + f.attendees);
-  lines.push('');
-  if (f.content) { lines.push('▶ 회의 내용'); lines.push(f.content); lines.push(''); }
-  if (MEMO_STATE.options.showContent2 && f.content2) { lines.push('▶ 추가 내용'); lines.push(f.content2); lines.push(''); }
-  if (MEMO_STATE.options.showIssues && f.issues) { lines.push('▶ 이슈사항'); lines.push(f.issues); lines.push(''); }
-  if (MEMO_STATE.options.showActions && f.actions) { lines.push('▶ 조치사항'); lines.push(f.actions); lines.push(''); }
-  if (f.remarks) { lines.push('▶ 비고'); lines.push(f.remarks); }
-  var text = lines.join('\n');
-  var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a'); a.href = url; a.download = todayStr() + '_메모.txt'; a.click();
-  URL.revokeObjectURL(url);
-  showToast('텍스트 파일 다운로드 완료');
+  var dateVal = (function(s) {
+    if (!s) return s;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    var d = new Date(s); if (isNaN(d.getTime())) return s;
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  })(f.date);
+  var wsData = [
+    ['■ 회의 메모/노트 — ' + (f.title || '')],
+    [],
+    ['구분', '내용'],
+    ['제목', f.title || ''],
+    ['일자', dateVal || ''],
+    ['장소', f.place || ''],
+    ['참석자', f.attendees || ''],
+    ['회의내용', f.content || '']
+  ];
+  if (MEMO_STATE.options.showContent2 && f.content2) wsData.push(['추가내용', f.content2]);
+  if (MEMO_STATE.options.showIssues   && f.issues)   wsData.push(['이슈사항', f.issues]);
+  if (MEMO_STATE.options.showActions  && f.actions)  wsData.push(['조치사항', f.actions]);
+  if (f.remarks) wsData.push(['비고', f.remarks]);
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{ wch: 12 }, { wch: 60 }];
+  XLSX.utils.book_append_sheet(wb, ws, '메모노트');
+  XLSX.writeFile(wb, todayStr() + '_메모노트.xlsx');
+  showToast('엑셀 다운로드 완료');
 }
 
 // execLoad override for memo tab
