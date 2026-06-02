@@ -148,7 +148,7 @@ function memoFullscreen() {
   hd.style.cssText = 'font-family:var(--fh);font-size:20px;font-weight:700;color:var(--accentD);letter-spacing:2px;margin-bottom:18px;padding-bottom:9px;border-bottom:2px solid var(--panel)';
   hd.textContent = '◈ 메모/노트' + (f.title ? ' — ' + f.title : ''); fc.appendChild(hd);
   var tbl = document.createElement('table');
-  tbl.style.cssText = 'width:100%;border-collapse:collapse;font-size:14px;font-family:Noto Sans KR,sans-serif';
+  tbl.style.cssText = 'width:100%;border-collapse:collapse;font-size:14px;font-family:Noto Sans KR,sans-serif;border:1px solid #a8c4e0';
   var rows = [
     { label: '📅 일자', val: f.date }, { label: '📍 장소', val: f.place },
     { label: '👥 참석자', val: f.attendees }, { label: '📌 제목', val: f.title },
