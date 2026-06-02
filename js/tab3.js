@@ -158,6 +158,14 @@ function memoFullscreen() {
   if (MEMO_STATE.options.showIssues && f.issues) rows.push({ label: '⚠ 이슈', val: f.issues });
   if (MEMO_STATE.options.showActions && f.actions) rows.push({ label: '✅ 조치', val: f.actions });
   if (f.remarks) rows.push({ label: '💬 비고', val: f.remarks });
+  var hdrTr = document.createElement('tr');
+  var hdrTh1 = document.createElement('td');
+  hdrTh1.style.cssText = 'background:linear-gradient(160deg,#001130,#002060);color:rgba(255,255,255,.85);font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px;padding:7px 14px;width:110px;border-bottom:2px solid rgba(255,255,255,.5);border-right:2px solid rgba(255,255,255,.25);letter-spacing:1.5px;text-transform:uppercase';
+  hdrTh1.textContent = '구분';
+  var hdrTh2 = document.createElement('td');
+  hdrTh2.style.cssText = 'background:linear-gradient(160deg,#001130,#002060);color:rgba(255,255,255,.85);font-family:Rajdhani,sans-serif;font-weight:700;font-size:12px;padding:7px 14px;border-bottom:2px solid rgba(255,255,255,.5);letter-spacing:1.5px;text-transform:uppercase';
+  hdrTh2.textContent = '내용';
+  hdrTr.appendChild(hdrTh1); hdrTr.appendChild(hdrTh2); tbl.appendChild(hdrTr);
   rows.forEach(function(fld) {
     var tr = document.createElement('tr');
     var th = document.createElement('td');
