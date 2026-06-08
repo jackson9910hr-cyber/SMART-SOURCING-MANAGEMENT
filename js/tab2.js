@@ -435,3 +435,45 @@ function captureGanttFull(cb, forMail) {
   tmp.appendChild(clone);
   setTimeout(function() { captureEl(tmp, function(url) { document.body.removeChild(tmp); cb(url); }, forMail); }, 120);
 }
+
+function doExcel2() {
+  if (typeof XLSX === 'undefined') { showToast('라이브러리 로딩 중', true); return; }
+
+  var pnames = APP.p2.pnames;
+  var pn = [pnames[0]||'공정1', pnames[1]||'공정2', pnames[2]||'공정3', pnames[3]||'공정4'];
+
+  var headers = [
+    '#', '업체명', '프로젝트', '품목명',
+    '요구납기', '제작착수일', '제작완료일', 'L/T(개월)', '비고',
+    pn[0]+' 착수', pn[0]+' 완료', pn[1]+' 착수', pn[1]+' 완료',
+    pn[2]+' 착수', pn[2]+' 완료', pn[3]+' 착수', pn[3]+' 완료',
+    '진도율'
+  ];
+
+  var rows = getData2();
+  var wb = XLSX.utils.book_new();
+  var wsData = [];
+
+  var sumVal = document.getElementById('p2sum').value || '';
+  wsData.push(['■ 부하분석 SUMMARY']);
+  sumVal.split('\n').forEach(function(line) { wsData.push([line]); });
+  wsData.push([]);
+  wsData.push(headers);
+
+  rows.forEach(function(r, ri) {
+    var prog = APP.p2.progress[ri];
+    var progVal = (prog && prog.pct !== undefined) ? (prog.pct + '%') : '';
+    wsData.push([
+      ri+1, r[0]||'', r[1]||'', r[2]||'', r[3]||'', r[4]||'', r[5]||'',
+      calcLT(r[4], r[5]),
+      r[6]||'', r[7]||'', r[8]||'', r[9]||'', r[10]||'',
+      r[11]||'', r[12]||'', r[13]||'', r[14]||'',
+      progVal
+    ]);
+  });
+
+  var ws = XLSX.utils.aoa_to_sheet(wsData);
+  XLSX.utils.book_append_sheet(wb, ws, '업체_품목별 부하관리');
+  XLSX.writeFile(wb, todayStr() + '_부하관리.xlsx');
+  showToast('엑셀 다운로드 완료');
+}
