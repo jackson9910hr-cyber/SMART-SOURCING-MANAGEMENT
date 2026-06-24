@@ -168,6 +168,7 @@ function _fmtTipDate(d) {
     String(d.getDate()).padStart(2,'0');
 }
 var _ganttClickBound = false;
+var _ganttBarsData = {};
 function _ensureGanttClickDelegate() {
   if (_ganttClickBound) return;
   _ganttClickBound = true;
@@ -184,17 +185,6 @@ function _ensureGanttClickDelegate() {
     e.preventDefault(); _handleGanttProgressClick(e, td);
   }, { passive: false });
   var _tip = document.getElementById('gantt-tip');
-  function _showTip(rect, cx, cy) {
-    if (!_tip || !rect) return;
-    var label = rect.getAttribute('data-tip-label');
-    var start = rect.getAttribute('data-tip-start');
-    var end   = rect.getAttribute('data-tip-end');
-    if (!label) return;
-    _tip.innerHTML = '<div class="gantt-tip-label">'+escH(label)+'</div>' +
-                     '<div class="gantt-tip-dates">'+escH(start||'')+' ~ '+escH(end||'')+'</div>';
-    _tip.classList.add('visible');
-    _moveTip(cx, cy);
-  }
   function _moveTip(cx, cy) {
     if (!_tip) return;
     var tw=_tip.offsetWidth, th=_tip.offsetHeight, vw=window.innerWidth, vh=window.innerHeight;
@@ -205,26 +195,35 @@ function _ensureGanttClickDelegate() {
     _tip.style.left=left+'px'; _tip.style.top=top+'px';
   }
   function _hideTip() { if (_tip) _tip.classList.remove('visible'); }
-  document.addEventListener('mouseover', function(e) {
-    var r=e.target; if (r.tagName!=='rect'&&r.tagName!=='RECT') return;
-    if (!r.hasAttribute('data-tip-label')) return;
-    var go=document.getElementById('gantt-outer');
-    if (!go||!go.contains(r)) return;
-    _showTip(r, e.clientX, e.clientY);
-  });
   document.addEventListener('mousemove', function(e) {
-    if (!_tip||!_tip.classList.contains('visible')) return;
-    var r=e.target; if (r.tagName!=='rect'&&r.tagName!=='RECT') return;
-    if (!r.hasAttribute('data-tip-label')) return;
-    _moveTip(e.clientX, e.clientY);
-  });
-  document.addEventListener('mouseout', function(e) {
-    if (!_tip||!_tip.classList.contains('visible')) return;
-    var from=e.target; if (from.tagName!=='rect'&&from.tagName!=='RECT') return;
-    if (!from.hasAttribute('data-tip-label')) return;
-    var to=e.relatedTarget;
-    if (to&&(to.tagName==='rect'||to.tagName==='RECT')&&to.hasAttribute('data-tip-label')) return;
-    _hideTip();
+    var td = e.target.closest ? e.target.closest('td[data-gantt-row]') : null;
+    if (!td) { _hideTip(); return; }
+    var go = document.getElementById('gantt-outer');
+    if (!go || !go.contains(td)) { _hideTip(); return; }
+    var rowIdx = parseInt(td.getAttribute('data-gantt-row'), 10);
+    var bars = _ganttBarsData[rowIdx];
+    if (!bars || !bars.length) { _hideTip(); return; }
+    var svg = td.querySelector('svg');
+    if (!svg) { _hideTip(); return; }
+    var vbParts = (svg.getAttribute('viewBox') || '').split(' ');
+    var svgWp = parseFloat(vbParts[2]), svgHp = parseFloat(vbParts[3]);
+    if (!svgWp || !svgHp) { _hideTip(); return; }
+    var tdRect = td.getBoundingClientRect();
+    var svgX = ((e.clientX - tdRect.left) / tdRect.width) * svgWp;
+    var svgY = ((e.clientY - tdRect.top) / tdRect.height) * svgHp;
+    var hitBar = null;
+    for (var i = bars.length - 1; i >= 0; i--) {
+      var b = bars[i];
+      if (svgX >= b.x1 && svgX <= b.x2 && svgY >= b.y1 && svgY <= b.y2) { hitBar = b; break; }
+    }
+    if (hitBar) {
+      _tip.innerHTML = '<div class="gantt-tip-label">'+escH(hitBar.label)+'</div>' +
+                       '<div class="gantt-tip-dates">'+escH(hitBar.start)+' ~ '+escH(hitBar.end)+'</div>';
+      _tip.classList.add('visible');
+      _moveTip(e.clientX, e.clientY);
+    } else {
+      _hideTip();
+    }
   });
 }
 
@@ -262,6 +261,7 @@ function _handleGanttProgressClick(e, td) {
 
 function buildGantt(rows) {
   if (!rows || !rows.length) return;
+  _ganttBarsData = {};
   var mn = null, mx = null;
   rows.forEach(function(r) {
     var s = parseDate(r[4]), e = parseDate(r[5]);
@@ -368,6 +368,8 @@ function buildGantt(rows) {
       if (bx1 !== null && bx2 !== null && bx2 > bx1) {
         sp.push('<defs><linearGradient id="mgr' + ri + '" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#7fe0ff;stop-opacity:0.95"/><stop offset="100%" style="stop-color:#2aaeff;stop-opacity:0.95"/></linearGradient></defs>');
         sp.push('<rect x="' + bx1.toFixed(2) + '" y="' + mainY + '" width="' + (bx2 - bx1).toFixed(2) + '" height="' + mainH + '" rx="3" ry="3" fill="url(#mgr' + ri + ')" data-tip-label="' + escH('전체(제작)') + '" data-tip-start="' + escH(_fmtTipDate(startD)) + '" data-tip-end="' + escH(_fmtTipDate(endD3)) + '"/>');
+        if (!_ganttBarsData[ri]) _ganttBarsData[ri] = [];
+        _ganttBarsData[ri].push({ label: '전체(제작)', start: _fmtTipDate(startD), end: _fmtTipDate(endD3), x1: bx1, x2: bx2, y1: mainY, y2: mainY+mainH });
       }
     }
     function clampX(x) { return Math.max(0, Math.min(SVG_W, x)); }
@@ -377,6 +379,10 @@ function buildGantt(rows) {
       var cp = clipId ? ' clip-path="url(#' + clipId + ')"' : '';
       var tip = (tipLabel != null) ? ' data-tip-label="' + escH(tipLabel) + '" data-tip-start="' + escH(tipStart || '') + '" data-tip-end="' + escH(tipEnd || '') + '"' : '';
       sp.push('<rect x="' + xx.toFixed(2) + '" y="' + y.toFixed(2) + '" width="' + ww.toFixed(2) + '" height="' + h.toFixed(2) + '" rx="' + rx2 + '" ry="' + rx2 + '" fill="' + color + '" opacity="' + op + '"' + cp + tip + '/>');
+      if (tipLabel != null) {
+        if (!_ganttBarsData[ri]) _ganttBarsData[ri] = [];
+        _ganttBarsData[ri].push({ label: tipLabel, start: tipStart||'', end: tipEnd||'', x1: xx, x2: xx+ww, y1: y, y2: y+h });
+      }
     }
     function segActive(p, a, b) { return p.s < b && p.e > a; }
     var validProcs = procs.filter(function(p) { return p.s && p.e && p.e > p.s; });
