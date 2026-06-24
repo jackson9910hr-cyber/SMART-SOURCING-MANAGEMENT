@@ -161,6 +161,12 @@ function p2Complete() {
 }
 
 /* ══ Gantt 차트 ══ */
+function _fmtTipDate(d) {
+  if (!d) return '';
+  return d.getFullYear() + '-' +
+    String(d.getMonth()+1).padStart(2,'0') + '-' +
+    String(d.getDate()).padStart(2,'0');
+}
 var _ganttClickBound = false;
 function _ensureGanttClickDelegate() {
   if (_ganttClickBound) return;
@@ -177,6 +183,49 @@ function _ensureGanttClickDelegate() {
     if (!ganttOuter || !ganttOuter.contains(td)) return;
     e.preventDefault(); _handleGanttProgressClick(e, td);
   }, { passive: false });
+  var _tip = document.getElementById('gantt-tip');
+  function _showTip(rect, cx, cy) {
+    if (!_tip || !rect) return;
+    var label = rect.getAttribute('data-tip-label');
+    var start = rect.getAttribute('data-tip-start');
+    var end   = rect.getAttribute('data-tip-end');
+    if (!label) return;
+    _tip.innerHTML = '<div class="gantt-tip-label">'+escH(label)+'</div>' +
+                     '<div class="gantt-tip-dates">'+escH(start||'')+' ~ '+escH(end||'')+'</div>';
+    _tip.classList.add('visible');
+    _moveTip(cx, cy);
+  }
+  function _moveTip(cx, cy) {
+    if (!_tip) return;
+    var tw=_tip.offsetWidth, th=_tip.offsetHeight, vw=window.innerWidth, vh=window.innerHeight;
+    var left=cx+14, top=cy-Math.floor(th/2);
+    if (left+tw+4>vw) left=cx-tw-14;
+    if (top<4) top=4;
+    if (top+th+4>vh) top=vh-th-4;
+    _tip.style.left=left+'px'; _tip.style.top=top+'px';
+  }
+  function _hideTip() { if (_tip) _tip.classList.remove('visible'); }
+  document.addEventListener('mouseover', function(e) {
+    var r=e.target; if (r.tagName!=='rect'&&r.tagName!=='RECT') return;
+    if (!r.hasAttribute('data-tip-label')) return;
+    var go=document.getElementById('gantt-outer');
+    if (!go||!go.contains(r)) return;
+    _showTip(r, e.clientX, e.clientY);
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!_tip||!_tip.classList.contains('visible')) return;
+    var r=e.target; if (r.tagName!=='rect'&&r.tagName!=='RECT') return;
+    if (!r.hasAttribute('data-tip-label')) return;
+    _moveTip(e.clientX, e.clientY);
+  });
+  document.addEventListener('mouseout', function(e) {
+    if (!_tip||!_tip.classList.contains('visible')) return;
+    var from=e.target; if (from.tagName!=='rect'&&from.tagName!=='RECT') return;
+    if (!from.hasAttribute('data-tip-label')) return;
+    var to=e.relatedTarget;
+    if (to&&(to.tagName==='rect'||to.tagName==='RECT')&&to.hasAttribute('data-tip-label')) return;
+    _hideTip();
+  });
 }
 
 function _handleGanttProgressClick(e, td) {
@@ -318,20 +367,24 @@ function buildGantt(rows) {
       var bx1 = dx(startD), bx2 = dx(endD3);
       if (bx1 !== null && bx2 !== null && bx2 > bx1) {
         sp.push('<defs><linearGradient id="mgr' + ri + '" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#7fe0ff;stop-opacity:0.95"/><stop offset="100%" style="stop-color:#2aaeff;stop-opacity:0.95"/></linearGradient></defs>');
-        sp.push('<rect x="' + bx1.toFixed(2) + '" y="' + mainY + '" width="' + (bx2 - bx1).toFixed(2) + '" height="' + mainH + '" rx="3" ry="3" fill="url(#mgr' + ri + ')"/>');
+        sp.push('<rect x="' + bx1.toFixed(2) + '" y="' + mainY + '" width="' + (bx2 - bx1).toFixed(2) + '" height="' + mainH + '" rx="3" ry="3" fill="url(#mgr' + ri + ')" data-tip-label="' + escH('전체(제작)') + '" data-tip-start="' + escH(_fmtTipDate(startD)) + '" data-tip-end="' + escH(_fmtTipDate(endD3)) + '"/>');
       }
     }
     function clampX(x) { return Math.max(0, Math.min(SVG_W, x)); }
-    function drawRect(xA, xB, y, h, color, rx2, op, clipId) {
+    function drawRect(xA, xB, y, h, color, rx2, op, clipId, tipLabel, tipStart, tipEnd) {
       if (xA === null || xB === null || xB <= xA) return; var EPS = 0.45;
       var xx = clampX(xA - EPS / 2), ww = clampX(xB + EPS / 2) - xx; if (ww <= 0) return;
       var cp = clipId ? ' clip-path="url(#' + clipId + ')"' : '';
-      sp.push('<rect x="' + xx.toFixed(2) + '" y="' + y.toFixed(2) + '" width="' + ww.toFixed(2) + '" height="' + h.toFixed(2) + '" rx="' + rx2 + '" ry="' + rx2 + '" fill="' + color + '" opacity="' + op + '"' + cp + '/>');
+      var tip = (tipLabel != null) ? ' data-tip-label="' + escH(tipLabel) + '" data-tip-start="' + escH(tipStart || '') + '" data-tip-end="' + escH(tipEnd || '') + '"' : '';
+      sp.push('<rect x="' + xx.toFixed(2) + '" y="' + y.toFixed(2) + '" width="' + ww.toFixed(2) + '" height="' + h.toFixed(2) + '" rx="' + rx2 + '" ry="' + rx2 + '" fill="' + color + '" opacity="' + op + '"' + cp + tip + '/>');
     }
     function segActive(p, a, b) { return p.s < b && p.e > a; }
     var validProcs = procs.filter(function(p) { return p.s && p.e && p.e > p.s; });
     if (validProcs.length === 1) {
-      drawRect(dx(validProcs[0].s), dx(validProcs[0].e), mainY, mainH, PROC_COLORS[validProcs[0].ci], 0, 0.92, null);
+      var _vp0 = validProcs[0];
+      var _pn0 = APP.p2.pnames[_vp0.ci] || ('공정' + (_vp0.ci + 1));
+      drawRect(dx(_vp0.s), dx(_vp0.e), mainY, mainH, PROC_COLORS[_vp0.ci], 0, 0.92, null,
+        _pn0, _fmtTipDate(_vp0.s), _fmtTipDate(_vp0.e));
     } else if (validProcs.length >= 2) {
       var times = []; validProcs.forEach(function(p) { times.push(p.s.getTime(), p.e.getTime()); });
       times = Array.from(new Set(times)).sort(function(a, b) { return a - b; }).map(function(t) { return new Date(t); });
@@ -340,13 +393,20 @@ function buildGantt(rows) {
         var act = validProcs.filter(function(p) { return segActive(p, ta2, tb2); }).sort(function(a, b) { return a.ci - b.ci; });
         if (!act.length) continue;
         var xA = dx(ta2), xB = dx(tb2); if (xA === null || xB === null || xB <= xA) continue;
-        if (act.length === 1) { drawRect(xA, xB, mainY, mainH, PROC_COLORS[act[0].ci], 0, 0.92, null); }
-        else {
+        if (act.length === 1) {
+          var _pnA = APP.p2.pnames[act[0].ci] || ('공정' + (act[0].ci + 1));
+          drawRect(xA, xB, mainY, mainH, PROC_COLORS[act[0].ci], 0, 0.92, null,
+            _pnA, _fmtTipDate(act[0].s), _fmtTipDate(act[0].e));
+        } else {
           var clipId = 'cp' + ri + '_' + ti;
           var cx1 = clampX(xA), cx2 = clampX(xB);
           sp.push('<defs><clipPath id="' + clipId + '"><rect x="' + cx1.toFixed(2) + '" y="' + mainY + '" width="' + (cx2 - cx1).toFixed(2) + '" height="' + mainH + '" /></clipPath></defs>');
           var gap = 1, laneH = (mainH - gap * (act.length - 1)) / act.length; if (laneH < 6) { gap = 0; laneH = mainH / act.length; }
-          for (var k = 0; k < act.length; k++) { drawRect(xA, xB, mainY + k * (laneH + gap), laneH, PROC_COLORS[act[k].ci], 0, 0.92, clipId); }
+          for (var k = 0; k < act.length; k++) {
+            var _pnK = APP.p2.pnames[act[k].ci] || ('공정' + (act[k].ci + 1));
+            drawRect(xA, xB, mainY + k * (laneH + gap), laneH, PROC_COLORS[act[k].ci], 0, 0.92, clipId,
+              _pnK, _fmtTipDate(act[k].s), _fmtTipDate(act[k].e));
+          }
         }
       }
     }

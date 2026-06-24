@@ -186,6 +186,29 @@ tbody td { border: 1px solid #aac8e0; padding: 1px; vertical-align: top; }
 .gantt-outer > div.no-scroll { overflow-x: visible; }
 .gantt-outer table { border-collapse: separate; border-spacing: 0; }
 
+/* ══ GANTT TOOLTIP ══ */
+.gantt-tip {
+  position: fixed;
+  z-index: 99000;
+  pointer-events: none;
+  background: rgba(10,28,55,0.93);
+  color: #e8f4ff;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 7px 12px;
+  border-radius: 5px;
+  border: 1px solid #4a9cc8;
+  box-shadow: 0 4px 18px rgba(0,50,120,0.35);
+  white-space: nowrap;
+  max-width: 280px;
+  display: none;
+  user-select: none;
+}
+.gantt-tip.visible { display: block; }
+.gantt-tip-label { font-weight: 700; font-size: 13px; color: #7fe0ff; margin-bottom: 2px; }
+.gantt-tip-dates { color: #c8e8ff; }
+
 /* ══ MEMO ══ */
 .memo-form { background: var(--bg3); border: 1.5px solid var(--border); border-radius: var(--r); padding: 16px 20px; box-shadow: var(--sh); margin-bottom: 12px; }
 .memo-row { margin-bottom: 12px; }
