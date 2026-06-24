@@ -195,11 +195,10 @@ function _ensureGanttClickDelegate() {
     _tip.style.left=left+'px'; _tip.style.top=top+'px';
   }
   function _hideTip() { if (_tip) _tip.classList.remove('visible'); }
-  document.addEventListener('mousemove', function(e) {
+  document.addEventListener('click', function(e) {
     var td = e.target.closest ? e.target.closest('td[data-gantt-row]') : null;
-    if (!td) { _hideTip(); return; }
-    var go = document.getElementById('gantt-outer');
-    if (!go || !go.contains(td)) { _hideTip(); return; }
+    var fsGo = document.getElementById('gantt-outer-fs');
+    if (!fsGo || !td || !fsGo.contains(td)) { _hideTip(); return; }
     var rowIdx = parseInt(td.getAttribute('data-gantt-row'), 10);
     var bars = _ganttBarsData[rowIdx];
     if (!bars || !bars.length) { _hideTip(); return; }
@@ -479,7 +478,11 @@ function ganttFullscreen() {
   document.getElementById('fsov2').classList.add('active');
 }
 
-function closeFS2() { document.getElementById('fsov2').classList.remove('active'); }
+function closeFS2() {
+  document.getElementById('fsov2').classList.remove('active');
+  var tip = document.getElementById('gantt-tip');
+  if (tip) tip.classList.remove('visible');
+}
 
 function ganttShare() { showToast('캡쳐 중...'); captureGanttFull(function(url) { dlOrShare(url, '간트차트.jpg'); showToast('다운로드/공유 실행'); }, false); }
 function ganttMail() { showToast('메일 준비 중...'); captureGanttFull(function(url) { sendMail(url, '부하관리 간트차트'); }, true); }
