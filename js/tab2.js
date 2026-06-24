@@ -341,7 +341,7 @@ function buildGantt(rows) {
       var bx1 = dx(startD), bx2 = dx(endD3);
       if (bx1 !== null && bx2 !== null && bx2 > bx1) {
         sp.push('<defs><linearGradient id="mgr' + ri + '" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#7fe0ff;stop-opacity:0.95"/><stop offset="100%" style="stop-color:#2aaeff;stop-opacity:0.95"/></linearGradient></defs>');
-        sp.push('<rect x="' + bx1.toFixed(2) + '" y="' + mainY + '" width="' + (bx2 - bx1).toFixed(2) + '" height="' + mainH + '" rx="3" ry="3" fill="url(#mgr' + ri + ')" data-tip-label="' + escH('전체(제작)') + '" data-tip-start="' + escH(_fmtTipDate(startD)) + '" data-tip-end="' + escH(_fmtTipDate(endD3)) + '"/>');
+        sp.push('<rect x="' + bx1.toFixed(2) + '" y="' + mainY + '" width="' + (bx2 - bx1).toFixed(2) + '" height="' + mainH + '" rx="3" ry="3" fill="url(#mgr' + ri + ')" style="cursor:pointer" data-tip-label="' + escH('전체(제작)') + '" data-tip-start="' + escH(_fmtTipDate(startD)) + '" data-tip-end="' + escH(_fmtTipDate(endD3)) + '"/>');
         if (!_ganttBarsData[ri]) _ganttBarsData[ri] = [];
         _ganttBarsData[ri].push({ label: '전체(제작)', start: _fmtTipDate(startD), end: _fmtTipDate(endD3), x1: bx1, x2: bx2, y1: mainY, y2: mainY+mainH });
       }
@@ -351,7 +351,7 @@ function buildGantt(rows) {
       if (xA === null || xB === null || xB <= xA) return; var EPS = 0.45;
       var xx = clampX(xA - EPS / 2), ww = clampX(xB + EPS / 2) - xx; if (ww <= 0) return;
       var cp = clipId ? ' clip-path="url(#' + clipId + ')"' : '';
-      var tip = (tipLabel != null) ? ' data-tip-label="' + escH(tipLabel) + '" data-tip-start="' + escH(tipStart || '') + '" data-tip-end="' + escH(tipEnd || '') + '"' : '';
+      var tip = (tipLabel != null) ? ' style="cursor:pointer" data-tip-label="' + escH(tipLabel) + '" data-tip-start="' + escH(tipStart || '') + '" data-tip-end="' + escH(tipEnd || '') + '"' : '';
       sp.push('<rect x="' + xx.toFixed(2) + '" y="' + y.toFixed(2) + '" width="' + ww.toFixed(2) + '" height="' + h.toFixed(2) + '" rx="' + rx2 + '" ry="' + rx2 + '" fill="' + color + '" opacity="' + op + '"' + cp + tip + '/>');
       if (tipLabel != null) {
         if (!_ganttBarsData[ri]) _ganttBarsData[ri] = [];
