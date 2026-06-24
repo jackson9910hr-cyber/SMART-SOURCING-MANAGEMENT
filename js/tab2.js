@@ -169,6 +169,21 @@ function _fmtTipDate(d) {
 }
 var _ganttClickBound = false;
 var _ganttBarsData = {};
+var _tip = null;
+function _moveTip(cx, cy) {
+  if (!_tip) _tip = document.getElementById('gantt-tip');
+  if (!_tip) return;
+  var tw=_tip.offsetWidth, th=_tip.offsetHeight, vw=window.innerWidth, vh=window.innerHeight;
+  var left=cx+14, top=cy-Math.floor(th/2);
+  if (left+tw+4>vw) left=cx-tw-14;
+  if (top<4) top=4;
+  if (top+th+4>vh) top=vh-th-4;
+  _tip.style.left=left+'px'; _tip.style.top=top+'px';
+}
+function _hideTip() {
+  if (!_tip) _tip = document.getElementById('gantt-tip');
+  if (_tip) _tip.classList.remove('visible');
+}
 function _ensureGanttClickDelegate() {
   if (_ganttClickBound) return;
   _ganttClickBound = true;
@@ -184,46 +199,6 @@ function _ensureGanttClickDelegate() {
     if (!ganttOuter || !ganttOuter.contains(td)) return;
     e.preventDefault(); _handleGanttProgressClick(e, td);
   }, { passive: false });
-  var _tip = document.getElementById('gantt-tip');
-  function _moveTip(cx, cy) {
-    if (!_tip) return;
-    var tw=_tip.offsetWidth, th=_tip.offsetHeight, vw=window.innerWidth, vh=window.innerHeight;
-    var left=cx+14, top=cy-Math.floor(th/2);
-    if (left+tw+4>vw) left=cx-tw-14;
-    if (top<4) top=4;
-    if (top+th+4>vh) top=vh-th-4;
-    _tip.style.left=left+'px'; _tip.style.top=top+'px';
-  }
-  function _hideTip() { if (_tip) _tip.classList.remove('visible'); }
-  document.addEventListener('click', function(e) {
-    var td = e.target.closest ? e.target.closest('td[data-gantt-row]') : null;
-    var fsGo = document.getElementById('gantt-outer-fs');
-    if (!fsGo || !td || !fsGo.contains(td)) { _hideTip(); return; }
-    var rowIdx = parseInt(td.getAttribute('data-gantt-row'), 10);
-    var bars = _ganttBarsData[rowIdx];
-    if (!bars || !bars.length) { _hideTip(); return; }
-    var svg = td.querySelector('svg');
-    if (!svg) { _hideTip(); return; }
-    var vbParts = (svg.getAttribute('viewBox') || '').split(' ');
-    var svgWp = parseFloat(vbParts[2]), svgHp = parseFloat(vbParts[3]);
-    if (!svgWp || !svgHp) { _hideTip(); return; }
-    var tdRect = td.getBoundingClientRect();
-    var svgX = ((e.clientX - tdRect.left) / tdRect.width) * svgWp;
-    var svgY = ((e.clientY - tdRect.top) / tdRect.height) * svgHp;
-    var hitBar = null;
-    for (var i = bars.length - 1; i >= 0; i--) {
-      var b = bars[i];
-      if (svgX >= b.x1 && svgX <= b.x2 && svgY >= b.y1 && svgY <= b.y2) { hitBar = b; break; }
-    }
-    if (hitBar) {
-      _tip.innerHTML = '<div class="gantt-tip-label">'+escH(hitBar.label)+'</div>' +
-                       '<div class="gantt-tip-dates">'+escH(hitBar.start)+' ~ '+escH(hitBar.end)+'</div>';
-      _tip.classList.add('visible');
-      _moveTip(e.clientX, e.clientY);
-    } else {
-      _hideTip();
-    }
-  });
 }
 
 function _handleGanttProgressClick(e, td) {
@@ -463,6 +438,35 @@ function ganttFullscreen() {
   var fsGanttOuter = document.createElement('div'); fsGanttOuter.className = 'gantt-outer'; fsGanttOuter.style.cssText = 'border:1.5px solid var(--border);border-radius:var(--r);background:var(--bg3);box-shadow:var(--sh);overflow:auto';
   ganttOuter.id = 'gantt-outer-tmp'; fsGanttOuter.id = 'gantt-outer'; document.body.appendChild(fsGanttOuter);
   buildGantt(rows);
+  fsGanttOuter.addEventListener('click', function(e) {
+    if (!_tip) _tip = document.getElementById('gantt-tip');
+    var td = e.target.closest ? e.target.closest('td[data-gantt-row]') : null;
+    if (!td) { _hideTip(); return; }
+    var rowIdx = parseInt(td.getAttribute('data-gantt-row'), 10);
+    var bars = _ganttBarsData[rowIdx];
+    if (!bars || !bars.length) { _hideTip(); return; }
+    var svg = td.querySelector('svg');
+    if (!svg) { _hideTip(); return; }
+    var vbParts = (svg.getAttribute('viewBox') || '').split(' ');
+    var svgWp = parseFloat(vbParts[2]), svgHp = parseFloat(vbParts[3]);
+    if (!svgWp || !svgHp) { _hideTip(); return; }
+    var tdRect = td.getBoundingClientRect();
+    var svgX = ((e.clientX - tdRect.left) / tdRect.width) * svgWp;
+    var svgY = ((e.clientY - tdRect.top) / tdRect.height) * svgHp;
+    var hitBar = null;
+    for (var i = bars.length - 1; i >= 0; i--) {
+      var b = bars[i];
+      if (svgX >= b.x1 && svgX <= b.x2 && svgY >= b.y1 && svgY <= b.y2) { hitBar = b; break; }
+    }
+    if (hitBar && _tip) {
+      _tip.innerHTML = '<div class="gantt-tip-label">'+escH(hitBar.label)+'</div>' +
+                       '<div class="gantt-tip-dates">'+escH(hitBar.start)+' ~ '+escH(hitBar.end)+'</div>';
+      _tip.classList.add('visible');
+      _moveTip(e.clientX, e.clientY);
+    } else {
+      _hideTip();
+    }
+  });
   fsGanttOuter.id = 'gantt-outer-fs'; ganttOuter.id = 'gantt-outer'; document.body.removeChild(fsGanttOuter);
   var fsWrapper = document.createElement('div'); fsWrapper.style.cssText = 'display:block;min-width:100%;box-sizing:border-box';
   [sLbl, sv].forEach(function(el) { if (el.parentNode === fc) fc.removeChild(el); fsWrapper.appendChild(el); });
