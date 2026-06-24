@@ -440,32 +440,15 @@ function ganttFullscreen() {
   buildGantt(rows);
   fsGanttOuter.addEventListener('click', function(e) {
     if (!_tip) _tip = document.getElementById('gantt-tip');
-    var td = e.target.closest ? e.target.closest('td[data-gantt-row]') : null;
-    if (!td) { _hideTip(); return; }
-    var rowIdx = parseInt(td.getAttribute('data-gantt-row'), 10);
-    var bars = _ganttBarsData[rowIdx];
-    if (!bars || !bars.length) { _hideTip(); return; }
-    var svg = td.querySelector('svg');
-    if (!svg) { _hideTip(); return; }
-    var vbParts = (svg.getAttribute('viewBox') || '').split(' ');
-    var svgWp = parseFloat(vbParts[2]), svgHp = parseFloat(vbParts[3]);
-    if (!svgWp || !svgHp) { _hideTip(); return; }
-    var tdRect = td.getBoundingClientRect();
-    var svgX = ((e.clientX - tdRect.left) / tdRect.width) * svgWp;
-    var svgY = ((e.clientY - tdRect.top) / tdRect.height) * svgHp;
-    var hitBar = null;
-    for (var i = bars.length - 1; i >= 0; i--) {
-      var b = bars[i];
-      if (svgX >= b.x1 && svgX <= b.x2 && svgY >= b.y1 && svgY <= b.y2) { hitBar = b; break; }
-    }
-    if (hitBar && _tip) {
-      _tip.innerHTML = '<div class="gantt-tip-label">'+escH(hitBar.label)+'</div>' +
-                       '<div class="gantt-tip-dates">'+escH(hitBar.start)+' ~ '+escH(hitBar.end)+'</div>';
-      _tip.classList.add('visible');
-      _moveTip(e.clientX, e.clientY);
-    } else {
-      _hideTip();
-    }
+    var tgt = e.target;
+    var label = tgt && tgt.getAttribute ? tgt.getAttribute('data-tip-label') : null;
+    if (!label || !_tip) { _hideTip(); return; }
+    var start = tgt.getAttribute('data-tip-start') || '';
+    var end   = tgt.getAttribute('data-tip-end')   || '';
+    _tip.innerHTML = '<div class="gantt-tip-label">' + escH(label) + '</div>' +
+                     '<div class="gantt-tip-dates">' + escH(start) + ' ~ ' + escH(end) + '</div>';
+    _tip.classList.add('visible');
+    _moveTip(e.clientX, e.clientY);
   });
   fsGanttOuter.id = 'gantt-outer-fs'; ganttOuter.id = 'gantt-outer'; document.body.removeChild(fsGanttOuter);
   var fsWrapper = document.createElement('div'); fsWrapper.style.cssText = 'display:block;min-width:100%;box-sizing:border-box';
