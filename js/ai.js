@@ -312,37 +312,41 @@ function p1AiReviewApply() {
   showToast('협의록 테이블에 AI 수정 내용이 반영되었습니다');
 }
 
+/* ══ 팝업 드래그 이동 공통 헬퍼 ══ */
+function makeDraggable(hdr, box, opts) {
+  opts = opts || {};
+  if (!hdr || !box) return;
+  var dragging = false, ox = 0, oy = 0, bx = 0, by = 0;
+  hdr.addEventListener('mousedown', function(e) {
+    if (opts.canDrag && !opts.canDrag()) return;
+    if (e.target.tagName === 'BUTTON') return;
+    var r = box.getBoundingClientRect(); ox = e.clientX; oy = e.clientY; bx = r.left; by = r.top;
+    dragging = true;
+    if (opts.onStart) opts.onStart(r);
+    document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', stopDrag); e.preventDefault();
+  });
+  function onMove(e) { if (!dragging) return; box.style.left = Math.max(0, bx + e.clientX - ox) + 'px'; box.style.top = Math.max(0, by + e.clientY - oy) + 'px'; }
+  function stopDrag() { dragging = false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', stopDrag); }
+}
+
 /* ══ AI 드래그 이동 (채팅 팝업) ══ */
 (function() {
   var hdr = document.getElementById('ai-chat-hdr'), popup = document.getElementById('ai-chat-popup');
-  if (!hdr || !popup) return;
-  var isDragging = false, startX, startY, startLeft, startTop;
-  function startDrag(e) {
-    if (AI_STATE.isMaximized) return; if (e.target.tagName === 'BUTTON') return;
-    isDragging = true; var rect = popup.getBoundingClientRect();
-    startX = e.clientX; startY = e.clientY; startLeft = rect.left; startTop = rect.top;
-    popup.style.left = rect.left + 'px'; popup.style.top = rect.top + 'px'; popup.style.right = ''; popup.style.bottom = '';
-    document.addEventListener('mousemove', onDrag); document.addEventListener('mouseup', stopDrag); e.preventDefault();
-  }
-  function onDrag(e) { if (!isDragging) return; popup.style.left = Math.max(0, startLeft + e.clientX - startX) + 'px'; popup.style.top = Math.max(0, startTop + e.clientY - startY) + 'px'; }
-  function stopDrag() { isDragging = false; document.removeEventListener('mousemove', onDrag); document.removeEventListener('mouseup', stopDrag); }
-  hdr.addEventListener('mousedown', startDrag);
+  makeDraggable(hdr, popup, {
+    canDrag: function() { return !AI_STATE.isMaximized; },
+    onStart: function(rect) {
+      popup.style.left = rect.left + 'px'; popup.style.top = rect.top + 'px'; popup.style.right = ''; popup.style.bottom = '';
+    }
+  });
 })();
 
 /* ══ AI Review 드래그 이동 ══ */
 (function() {
   function initDrag() {
     var hdr = document.getElementById('p1-ai-review-hdr'), box = document.getElementById('p1-ai-review-box');
-    if (!hdr || !box) return;
-    var dragging = false, ox = 0, oy = 0, bx = 0, by = 0;
-    hdr.addEventListener('mousedown', function(e) {
-      if (e.target.tagName === 'BUTTON') return;
-      var r = box.getBoundingClientRect(); ox = e.clientX; oy = e.clientY; bx = r.left; by = r.top;
-      dragging = true; box.style.position = 'fixed'; box.style.margin = '0';
-      document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', stopDrag); e.preventDefault();
+    makeDraggable(hdr, box, {
+      onStart: function() { box.style.position = 'fixed'; box.style.margin = '0'; }
     });
-    function onMove(e) { if (!dragging) return; box.style.left = Math.max(0, bx + e.clientX - ox) + 'px'; box.style.top = Math.max(0, by + e.clientY - oy) + 'px'; }
-    function stopDrag() { dragging = false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', stopDrag); }
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initDrag); }
   else { setTimeout(initDrag, 300); }

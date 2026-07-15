@@ -149,12 +149,7 @@ function memoFullscreen() {
   hd.textContent = '◈ 메모/노트' + (f.title ? ' — ' + f.title : ''); fc.appendChild(hd);
   var tbl = document.createElement('table');
   tbl.style.cssText = 'width:100%;border-collapse:collapse;font-size:14px;font-family:Noto Sans KR,sans-serif;border:1px solid #a8c4e0';
-  var dateVal = (function(s) {
-    if (!s) return s;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-    var d = new Date(s); if (isNaN(d.getTime())) return s;
-    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  })(f.date);
+  var dateVal = normDate(f.date);
   var rows = [
     { label: '📌 제목', val: f.title }, { label: '📅 일자', val: dateVal },
     { label: '📍 장소', val: f.place }, { label: '👥 참석자', val: f.attendees },
@@ -203,12 +198,7 @@ function openMemoAiReview() {
 function memoExportExcel() {
   if (typeof XLSX === 'undefined') { showToast('라이브러리 로딩 중', true); return; }
   var f = memoGetFields();
-  var dateVal = (function(s) {
-    if (!s) return s;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-    var d = new Date(s); if (isNaN(d.getTime())) return s;
-    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  })(f.date);
+  var dateVal = normDate(f.date);
   var wsData = [
     ['■ 회의 메모/노트 — ' + (f.title || '')],
     [],
@@ -231,8 +221,6 @@ function memoExportExcel() {
   showToast('엑셀 다운로드 완료');
 }
 
-// execLoad override for memo tab
-var _origExecLoad = null;
 document.addEventListener('DOMContentLoaded', function() {
   // 메모 textarea 자동 높이
   ['m3-attendees','m3-content','m3-content2','m3-issues','m3-actions','m3-remarks'].forEach(function(id) {

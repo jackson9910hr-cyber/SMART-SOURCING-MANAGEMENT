@@ -114,15 +114,13 @@ function insertRedMarker(ta, sel) {
   showToast('빨간글씨 적용 완료');
 }
 
-function applyRedText() {
-  if (_lastTA && document.getElementById('tb1').contains(_lastTA)) { insertRedMarker(_lastTA, _lastTASel); }
+function _applyRedTextForTable(tbodyId) {
+  if (_lastTA && document.getElementById(tbodyId).contains(_lastTA)) { insertRedMarker(_lastTA, _lastTASel); }
   else showToast('테이블 셀을 클릭하고 텍스트를 선택한 후 버튼을 누르세요', true);
 }
 
-function applyRedText2() {
-  if (_lastTA && document.getElementById('tb2').contains(_lastTA)) { insertRedMarker(_lastTA, _lastTASel); }
-  else showToast('테이블 셀을 클릭하고 텍스트를 선택한 후 버튼을 누르세요', true);
-}
+function applyRedText()  { _applyRedTextForTable('tb1'); }
+function applyRedText2() { _applyRedTextForTable('tb2'); }
 
 function renderRedMarkers(txt) {
   return escH(txt).replace(/\[R\]([\s\S]*?)\[\/R\]/g, function(m, inner) {

@@ -98,6 +98,32 @@ function deleteByFileName(sheet, fileName, prefix) {
   }
 }
 
+function deleteAllRowsForFile(sheet, fileName) {
+  var data = sheet.getDataRange().getValues();
+  for (var i = data.length - 1; i >= 0; i--) {
+    if (String(data[i][1]) === String(fileName)) sheet.deleteRow(i + 1);
+  }
+}
+
+// metaType 행을 스캔해 파일명별 {date, author} 목록을 만들어 날짜 내림차순으로 반환.
+// fallbackColIdx: 구버전 데이터의 작성자가 다른 열에 저장돼 있을 때의 대체 열 인덱스(선택).
+function buildFileList(sheet, metaType, authorColIdx, fallbackColIdx) {
+  var data = sheet.getDataRange().getValues();
+  var map = {};
+  for (var i = 0; i < data.length; i++) {
+    if (String(data[i][0]) === metaType) {
+      var au = fallbackColIdx !== undefined
+        ? String(data[i][authorColIdx] || data[i][fallbackColIdx] || '')
+        : String(data[i][authorColIdx] || '');
+      map[String(data[i][1])] = { date: String(data[i][2]), author: au };
+    }
+  }
+  var list = [];
+  for (var k in map) if (map.hasOwnProperty(k)) list.push({ name: k, date: map[k].date, author: map[k].author });
+  list.sort(function(a, b) { return b.date.localeCompare(a.date); });
+  return list;
+}
+
 function nowStr() {
   return Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss');
 }
@@ -146,20 +172,8 @@ function saveMeeting(payload) {
 
 function loadMeetingList() {
   try {
-    var sheet = getSheet(SHEET1);
-    var data  = sheet.getDataRange().getValues();
-    var map   = {};
-    for (var i = 0; i < data.length; i++) {
-      if (String(data[i][0]) === 'MTG_META') {
-        // index17(열R)=작성자 전용열. 구버전 데이터는 index5(열F) fallback
-        var au = String(data[i][17] || data[i][5] || '');
-        map[String(data[i][1])] = { date: String(data[i][2]), author: au };
-      }
-    }
-    var list = [];
-    for (var k in map) if (map.hasOwnProperty(k)) list.push({ name: k, date: map[k].date, author: map[k].author });
-    list.sort(function(a,b){ return b.date.localeCompare(a.date); });
-    return { success: true, list: list };
+    // index17(열R)=작성자 전용열. 구버전 데이터는 index5(열F) fallback
+    return { success: true, list: buildFileList(getSheet(SHEET1), 'MTG_META', 17, 5) };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
 
@@ -189,11 +203,7 @@ function loadMeeting(fileName) {
 
 function deleteMeeting(fileName) {
   try {
-    var sheet = getSheet(SHEET1);
-    var data = sheet.getDataRange().getValues();
-    for (var i = data.length - 1; i >= 0; i--) {
-      if (String(data[i][1]) === String(fileName)) sheet.deleteRow(i + 1);
-    }
+    deleteAllRowsForFile(getSheet(SHEET1), fileName);
     return { success: true };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
@@ -227,18 +237,7 @@ function saveLoad(payload) {
 
 function loadLoadList() {
   try {
-    var sheet = getSheet(SHEET2);
-    var data  = sheet.getDataRange().getValues();
-    var map   = {};
-    for (var i = 0; i < data.length; i++) {
-      if (String(data[i][0]) === 'LOAD_META') {
-        map[String(data[i][1])] = { date: String(data[i][2]), author: String(data[i][21] || '') };
-      }
-    }
-    var list = [];
-    for (var k in map) if (map.hasOwnProperty(k)) list.push({ name: k, date: map[k].date, author: map[k].author });
-    list.sort(function(a,b){ return b.date.localeCompare(a.date); });
-    return { success: true, list: list };
+    return { success: true, list: buildFileList(getSheet(SHEET2), 'LOAD_META', 21) };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
 
@@ -278,11 +277,7 @@ function loadLoad(fileName) {
 
 function deleteLoad(fileName) {
   try {
-    var sheet = getSheet(SHEET2);
-    var data = sheet.getDataRange().getValues();
-    for (var i = data.length - 1; i >= 0; i--) {
-      if (String(data[i][1]) === String(fileName)) sheet.deleteRow(i + 1);
-    }
+    deleteAllRowsForFile(getSheet(SHEET2), fileName);
     return { success: true };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
@@ -295,12 +290,7 @@ function saveMemo(payload) {
     var fields   = payload.fields   || {};
     var options  = payload.options  || {};
     var ts = nowStr();
-    var data = sheet.getDataRange().getValues();
-    for(var i=data.length-1;i>=0;i--){
-      if(String(data[i][1])===String(fileName)&&String(data[i][0]).indexOf('MEMO_')===0){
-        sheet.deleteRow(i+1);
-      }
-    }
+    deleteByFileName(sheet, fileName, 'MEMO_');
     var author = payload.author || '';
     sheet.appendRow(['MEMO_META', fileName, ts,
       fields.date||'', fields.place||'', fields.attendees||'',
@@ -314,18 +304,7 @@ function saveMemo(payload) {
 
 function loadMemoList() {
   try {
-    var sheet = getSheet(SHEET3);
-    var data  = sheet.getDataRange().getValues();
-    var map   = {};
-    for(var i=0;i<data.length;i++){
-      if(String(data[i][0])==='MEMO_META') {
-        map[String(data[i][1])]={date:String(data[i][2]),author:String(data[i][13]||'')};
-      }
-    }
-    var list=[];
-    for(var k in map) if(map.hasOwnProperty(k)) list.push({name:k,date:map[k].date,author:map[k].author});
-    list.sort(function(a,b){return b.date.localeCompare(a.date);});
-    return { success:true, list:list };
+    return { success: true, list: buildFileList(getSheet(SHEET3), 'MEMO_META', 13) };
   } catch(e){ return {success:false,error:e.toString()}; }
 }
 
@@ -354,11 +333,7 @@ function loadMemo(fileName) {
 
 function deleteMemo(fileName) {
   try {
-    var sheet = getSheet(SHEET3);
-    var data = sheet.getDataRange().getValues();
-    for (var i = data.length - 1; i >= 0; i--) {
-      if (String(data[i][1]) === String(fileName)) sheet.deleteRow(i + 1);
-    }
+    deleteAllRowsForFile(getSheet(SHEET3), fileName);
     return { success: true };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
