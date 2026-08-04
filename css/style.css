@@ -31,6 +31,10 @@ body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-in
 .brand-txt { display: flex; flex-direction: column; line-height: 1.2; }
 .brand-name { font-family: var(--fh); font-size: 21px; font-weight: 700; color: #fff; letter-spacing: 1px; text-shadow: 0 0 18px rgba(100,200,255,.6); }
 .brand-sub { font-family: var(--fm); font-size: 10px; color: rgba(160,210,255,.8); letter-spacing: 2px; text-transform: uppercase; }
+.lang-switch { display: flex; border: 1.5px solid rgba(160,210,255,.45); border-radius: var(--r); overflow: hidden; flex-shrink: 0; margin: 0 18px; }
+.lang-btn { height: 28px; padding: 0 12px; background: transparent; border: none; color: rgba(200,225,255,.75); font-family: var(--fh); font-size: 12px; font-weight: 700; letter-spacing: .8px; cursor: pointer; transition: all .15s; }
+.lang-btn:hover { background: rgba(255,255,255,.08); color: #fff; }
+.lang-btn.active { background: linear-gradient(135deg, #00aaff, #0066ff); color: #fff; }
 .hdr-credit { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; flex-shrink: 0; }
 .hdr-credit-label { font-family: var(--fh); font-size: 10px; font-weight: 600; color: rgba(160,210,255,.85); letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 12px rgba(100,200,255,.4); }
 .hdr-credit-name { font-family: var(--fh); font-size: 17px; font-weight: 700; color: #fff; letter-spacing: 1px; text-shadow: 0 0 18px rgba(100,200,255,.6); }
@@ -293,6 +297,8 @@ tbody td { border: 1px solid #aac8e0; padding: 1px; vertical-align: top; }
   .brand-sub { display: none; }
   .hdr-credit-name { font-size: 12px; }
   .hdr-credit-label { display: none; }
+  .lang-switch { margin: 0 8px; }
+  .lang-btn { height: 24px; padding: 0 8px; font-size: 10px; }
   .page { padding: 10px 12px; }
   .btn { height: 30px; padding: 0 10px; font-size: 11px; }
   .ph-area { grid-template-columns: repeat(2, 1fr); }

@@ -61,7 +61,7 @@ function checkOverdue1() {
 
 function completeSort1() {
   var rows = getData1();
-  if (!rows.length) { showToast('정렬할 데이터가 없습니다', true); return; }
+  if (!rows.length) { showToast(t('toast_nothing_to_sort'), true); return; }
   rows.sort(function(a, b) {
     var da = parseDate(String(a[3] || '').trim()), db = parseDate(String(b[3] || '').trim());
     if (!da && !db) return 0; if (!da) return 1; if (!db) return -1; return da - db;
@@ -69,31 +69,31 @@ function completeSort1() {
   var tbody = document.getElementById('tb1'); tbody.innerHTML = '';
   rows.forEach(function(r) { addRow1(r); });
   setTimeout(function() { arAllTA(); checkOverdue1(); refreshAllRedOverlays('tb1'); }, 50);
-  setDirty(1); showToast('고객납기 기준 오름차순 정렬 완료');
+  setDirty(1); showToast(t('toast_sort_done'));
 }
 
 function doExcel1() {
-  if (typeof XLSX === 'undefined') { showToast('라이브러리 로딩 중', true); return; }
+  if (typeof XLSX === 'undefined') { showToast(t('toast_lib_loading'), true); return; }
   var vis = APP.p1.colVis;
-  var headers = ['#','프로젝트','품목명','업체명'];
+  var headers = ['#', t('th_proj'), t('th_item'), t('th_vend')];
   var dataIdx = [0, 1, 2];
-  if (vis.cd)  { headers.push('고객납기'); dataIdx.push(3); }
-  if (vis.pod) { headers.push('PO납기');   dataIdx.push(4); }
-  if (vis.rd)  { headers.push('요구납기'); dataIdx.push(5); }
-  headers.push('가능납기','제작현황','비고'); dataIdx.push(6, 7, 8);
+  if (vis.cd)  { headers.push(t('th_cd'));  dataIdx.push(3); }
+  if (vis.pod) { headers.push(t('th_pod')); dataIdx.push(4); }
+  if (vis.rd)  { headers.push(t('th_rd'));  dataIdx.push(5); }
+  headers.push(t('th_avd'), t('th_stat'), t('th_rmk')); dataIdx.push(6, 7, 8);
   var rows = getData1();
   var wb = XLSX.utils.book_new(); var wsData = [];
   var sumVal = document.getElementById('p1sum').value || '';
-  wsData.push(['■ 회의결과 SUMMARY']);
+  wsData.push([t('sum1_lbl_caps')]);
   sumVal.split('\n').forEach(function(line) { wsData.push([line]); });
   wsData.push([]); wsData.push(headers);
   rows.forEach(function(r, ri) {
     var row = [ri + 1]; dataIdx.forEach(function(di) { row.push(r[di] || ''); }); wsData.push(row);
   });
   var ws = XLSX.utils.aoa_to_sheet(wsData);
-  XLSX.utils.book_append_sheet(wb, ws, '협력사 미팅 협의록');
-  XLSX.writeFile(wb, todayStr() + '_협력사미팅협의록.xlsx');
-  showToast('엑셀 다운로드 완료');
+  XLSX.utils.book_append_sheet(wb, ws, t('sheet_name1'));
+  XLSX.writeFile(wb, todayStr() + t('fname_suffix1') + '.xlsx');
+  showToast(t('toast_excel_done'));
 }
 
 /* ══ 전체화면 ══ */
@@ -101,13 +101,13 @@ function buildFsContent(targetEl) {
   var fc = targetEl || document.getElementById('fscnt'); fc.innerHTML = '';
   var hd = document.createElement('div');
   hd.style.cssText = 'font-family:var(--fh);font-size:20px;font-weight:700;color:var(--accentD);letter-spacing:2px;margin-bottom:12px;text-transform:uppercase;padding-bottom:9px;border-bottom:2px solid var(--panel)';
-  hd.textContent = '◈ 협력사 미팅 협의록'; fc.appendChild(hd);
+  hd.textContent = t('fs1_title'); fc.appendChild(hd);
   var sLbl = document.createElement('div');
   sLbl.style.cssText = 'font-family:var(--fh);font-size:13px;font-weight:700;color:var(--txt2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px';
-  sLbl.textContent = '■ 회의결과 SUMMARY'; fc.appendChild(sLbl);
+  sLbl.textContent = t('sum1_lbl_caps'); fc.appendChild(sLbl);
   var sv = document.createElement('div');
   sv.style.cssText = 'font-size:14px;color:var(--txt);background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:9px 13px;margin-bottom:14px;white-space:pre-wrap;line-height:1.7;box-sizing:border-box;width:100%';
-  sv.innerHTML = renderRedMarkers(document.getElementById('p1sum').value || '(요약 없음)'); fc.appendChild(sv);
+  sv.innerHTML = renderRedMarkers(document.getElementById('p1sum').value || t('no_summary')); fc.appendChild(sv);
   var srcRows = document.getElementById('tb1').rows;
   var srcThead = document.getElementById('t1').querySelector('thead');
   var tbl = document.createElement('table');
@@ -175,18 +175,18 @@ function doFullscreen() { buildFsContent(); document.getElementById('fsov').clas
 function closeFS() { document.getElementById('fsov').classList.remove('active'); }
 
 function doShare() {
-  showToast('캡쳐 중...');
+  showToast(t('toast_capturing'));
   var tmp = document.createElement('div');
   tmp.style.cssText = 'position:fixed;left:-99999px;top:0;width:1200px;background:#fff;padding:24px;border:0';
   document.body.appendChild(tmp); buildFsContent(tmp);
   setTimeout(function() {
-    captureEl(tmp, function(url) { document.body.removeChild(tmp); dlOrShare(url, '협의록_쳪쳐.jpg'); showToast('다운로드/공유 실행'); });
+    captureEl(tmp, function(url) { document.body.removeChild(tmp); dlOrShare(url, t('fname_capture')); showToast(t('toast_dl_share_run')); });
   }, 80);
 }
 
 function doShareFromFs() {
-  showToast('쳪쳐 중...');
-  captureEl(document.getElementById('fscnt'), function(url) { dlOrShare(url, '협의록_쳪쳐.jpg'); showToast('다운로드/공유 실행'); });
+  showToast(t('toast_capturing_alt'));
+  captureEl(document.getElementById('fscnt'), function(url) { dlOrShare(url, t('fname_capture')); showToast(t('toast_dl_share_run')); });
 }
 
 function doMail(fromFS) {

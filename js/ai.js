@@ -22,21 +22,21 @@ function requireAiAuth(callback) {
   confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
   newBtn.addEventListener('click', function() {
     var pw = document.getElementById('ai-pw-input').value.trim();
-    if (!pw) { document.getElementById('ai-pw-error').style.display = 'block'; document.getElementById('ai-pw-error').textContent = '비밀번호를 입력하세요.'; return; }
-    showToast('확인 중...');
+    if (!pw) { document.getElementById('ai-pw-error').style.display = 'block'; document.getElementById('ai-pw-error').textContent = t('err_pw_empty'); return; }
+    showToast(t('toast_verifying'));
     callAPI('verifyAiPassword', { password: pw }).then(function(r) {
       if (r && r.success && r.verified) {
         sessionStorage.setItem('aiUnlocked', 'true');
         closeModal('m-ai-pw');
-        showToast('AI 기능이 활성화되었습니다.');
+        showToast(t('toast_ai_unlocked'));
         callback();
       } else {
         document.getElementById('ai-pw-error').style.display = 'block';
-        document.getElementById('ai-pw-error').textContent = '비밀번호가 올바르지 않습니다.';
+        document.getElementById('ai-pw-error').textContent = t('err_pw_wrong');
       }
     }).catch(function() {
       document.getElementById('ai-pw-error').style.display = 'block';
-      document.getElementById('ai-pw-error').textContent = '서버 연결 오류가 발생했습니다.';
+      document.getElementById('ai-pw-error').textContent = t('err_pw_server');
     });
   });
   document.getElementById('ai-pw-input').addEventListener('keydown', function(e) {
@@ -54,9 +54,7 @@ function _doOpenAiChat(pg) {
   var popup = document.getElementById('ai-chat-popup');
   var body  = document.getElementById('ai-chat-body'); body.innerHTML = '';
   document.getElementById('ai-chat-title-text').textContent =
-    pg === 1 ? "Jackson's AI활용 - 협력사 미팅 협의록" :
-    pg === 2 ? "Jackson's AI활용 - 업체/품목별 부하관리" :
-               "Jackson's AI활용 - 메모/노트";
+    t('ai_chat_title_prefix') + ' - ' + (pg === 1 ? t('tab1_title') : pg === 2 ? t('tab2_title') : t('tab3_title'));
   if (!AI_STATE.isOpen) {
     popup.style.right = '20px'; popup.style.bottom = '20px'; popup.style.left = ''; popup.style.top = '';
     AI_STATE.isMaximized = false; AI_STATE.isMinimized = false;
@@ -73,10 +71,10 @@ function _doOpenAiChat(pg) {
     b.style.display = pg === 1 ? '' : 'none';
   });
   document.getElementById('ai-suggest-wrap').style.display = (pg === 3) ? 'none' : 'flex';
-  addAiMsg('system', '준비 중...');
+  addAiMsg('system', t('ai_msg_preparing'));
   AI_STATE.messages = [{ role: 'system', content: buildFallbackPrompt(pg) }];
   body.innerHTML = '';
-  addAiMsg('system', '📊 AI 어시스턴트가 준비되었습니다. 현재 탭의 데이터에 대해 질문하세요!');
+  addAiMsg('system', t('ai_msg_ready'));
   setTimeout(function() { document.getElementById('ai-chat-input').focus(); }, 200);
 }
 
@@ -143,7 +141,7 @@ function sendAiMessage() {
   input.value = ''; input.style.height = '38px';
   addAiMsg('user', msg); AI_STATE.messages.push({ role: 'user', content: msg });
   AI_STATE.isSending = true; document.getElementById('ai-chat-send').disabled = true;
-  var loadingDiv = addAiMsg('loading', 'AI가 분석 중...');
+  var loadingDiv = addAiMsg('loading', t('ai_msg_analyzing'));
   var aiPw = sessionStorage.getItem('aiPassword') || '';
   callAPI('callOpenAI', {
     messages: AI_STATE.messages, model: 'gpt-4o', max_tokens: 4000, temperature: 0.1,
@@ -151,18 +149,18 @@ function sendAiMessage() {
   }).then(function(r) {
     loadingDiv.remove();
     if (r && r.success) {
-      var reply = r.reply || '(응답 없음)';
+      var reply = r.reply || t('ai_no_reply');
       AI_STATE.messages.push({ role: 'assistant', content: reply });
       addAiMsg('assistant', reply);
     } else {
-      addAiMsg('system', '⚠ 오류: ' + (r && r.error ? r.error : '알 수 없는 오류'));
+      addAiMsg('system', t('ai_error_prefix') + (r && r.error ? r.error : t('err_unknown')));
     }
     AI_STATE.isSending = false; document.getElementById('ai-chat-send').disabled = false;
   });
 }
 
 function aiSuggest(type) {
-  if (!AI_STATE.messages || !AI_STATE.messages.length) { showToast('AI가 아직 준비 중입니다.', true); return; }
+  if (!AI_STATE.messages || !AI_STATE.messages.length) { showToast(t('toast_ai_not_ready'), true); return; }
   var NL = '\n';
   var msg = '';
   if (type === 'action') {
@@ -190,10 +188,10 @@ function openP1AiReview() {
 
 function _doOpenP1AiReview() {
   var rows = getData1();
-  if (!rows.length) { showToast('협의록 데이터를 먼저 입력하세요', true); return; }
+  if (!rows.length) { showToast(t('toast_enter_data1_first'), true); return; }
   var popup = document.getElementById('p1-ai-review-popup');
   var el = document.getElementById('p1-ai-review-content');
-  el.textContent = 'AI가 검토 중입니다...';
+  el.textContent = t('p1_ai_reviewing2');
   var box = document.getElementById('p1-ai-review-box');
   box.style.left = ''; box.style.top = ''; box.style.position = 'relative';
   popup.style.display = 'flex';
@@ -235,7 +233,7 @@ function _doOpenP1AiReview() {
       _p1AiReviewResult = r.reply || '';
       _p1AiRenderTable(_p1AiReviewResult, el);
     } else {
-      el.textContent = '오류: ' + (r && r.error ? r.error : '알 수 없는 오류');
+      el.textContent = t('toast_error_prefix') + (r && r.error ? r.error : t('err_unknown'));
     }
   });
 }
@@ -250,9 +248,9 @@ function _p1AiRenderTable(jsonStr, el) {
   } catch(ex) { el.textContent = jsonStr; return; }
   if (!Array.isArray(parsed) || !parsed.length) { el.textContent = jsonStr; return; }
   var cols = [
-    {k:'proj',label:'프로젝트'},{k:'item',label:'품목명'},{k:'vend',label:'업체명'},
-    {k:'cd',label:'고객납기'},{k:'pod',label:'PO납기'},{k:'rd',label:'요구납기'},
-    {k:'avd',label:'가능납기'},{k:'stat',label:'제작현황'},{k:'rmk',label:'비고'}
+    {k:'proj',label:t('th_proj')},{k:'item',label:t('th_item')},{k:'vend',label:t('th_vend')},
+    {k:'cd',label:t('th_cd')},{k:'pod',label:t('th_pod')},{k:'rd',label:t('th_rd')},
+    {k:'avd',label:t('th_avd')},{k:'stat',label:t('th_stat')},{k:'rmk',label:t('th_rmk')}
   ];
   var tbl = document.createElement('table');
   tbl.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px;font-family:Noto Sans KR,sans-serif';
@@ -288,16 +286,16 @@ function p1AiReviewMinimize() {
 }
 
 function p1AiReviewCopy() {
-  if (!_p1AiReviewResult) { showToast('복사할 내용이 없습니다', true); return; }
-  if (navigator.clipboard) { navigator.clipboard.writeText(_p1AiReviewResult).then(function() { showToast('클립보드에 복사되었습니다'); }); }
-  else { var ta = document.createElement('textarea'); ta.value = _p1AiReviewResult; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.focus(); ta.select(); try { document.execCommand('copy'); showToast('복사되었습니다'); } catch(ex) {} document.body.removeChild(ta); }
+  if (!_p1AiReviewResult) { showToast(t('toast_copy_nothing'), true); return; }
+  if (navigator.clipboard) { navigator.clipboard.writeText(_p1AiReviewResult).then(function() { showToast(t('toast_copied')); }); }
+  else { var ta = document.createElement('textarea'); ta.value = _p1AiReviewResult; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.focus(); ta.select(); try { document.execCommand('copy'); showToast(t('toast_copied2')); } catch(ex) {} document.body.removeChild(ta); }
 }
 
 function p1AiReviewApply() {
-  if (!_p1AiReviewResult) { showToast('적용할 내용이 없습니다', true); return; }
+  if (!_p1AiReviewResult) { showToast(t('toast_apply_nothing'), true); return; }
   var parsed = null;
   try { var clean = _p1AiReviewResult.trim(); var s = clean.indexOf('['), e2 = clean.lastIndexOf(']'); if (s >= 0 && e2 > s) clean = clean.slice(s, e2 + 1); parsed = JSON.parse(clean); } catch(ex) { parsed = null; }
-  if (!parsed || !Array.isArray(parsed) || !parsed.length) { showToast('AI 결과를 적용할 수 없습니다. 복사 후 수동으로 수정해주세요.', true); return; }
+  if (!parsed || !Array.isArray(parsed) || !parsed.length) { showToast(t('toast_apply_failed'), true); return; }
   var colKeys = ['proj','item','vend','cd','pod','rd','avd','stat','rmk'];
   var tbody = document.getElementById('tb1'), existingRows = tbody.rows;
   parsed.forEach(function(rowData, i) {
@@ -309,7 +307,7 @@ function p1AiReviewApply() {
   });
   checkOverdue1(); setDirty(1);
   document.getElementById('p1-ai-review-popup').style.display = 'none';
-  showToast('협의록 테이블에 AI 수정 내용이 반영되었습니다');
+  showToast(t('toast_apply_success'));
 }
 
 /* ══ AI 드래그 이동 (채팅 팝업) ══ */

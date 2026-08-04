@@ -13,7 +13,7 @@ function memoDirty() {
   var el = document.getElementById('ss3'), tx = document.getElementById('ss3t');
   if (!el || !tx) return;
   el.className = 'sstat unsaved';
-  tx.textContent = MEMO_STATE.name ? 'not saved_ 수정사항 발생' : 'not saved_ 저장하세요';
+  tx.textContent = MEMO_STATE.name ? t('status_unsaved_modified') : t('status_unsaved_prompt');
 }
 
 function memoClean(name) {
@@ -72,23 +72,23 @@ function memoApplyOptions() {
 }
 
 function memoClear() {
-  if (!confirm('현재 내용을 모두 지우시겠습니까?')) return;
+  if (!confirm(t('confirm_memo_clear'))) return;
   memoSetFields({ date:'', place:'', attendees:'', title:'', content:'', content2:'', issues:'', actions:'', remarks:'' });
   MEMO_STATE.saved = false; MEMO_STATE.name = '';
   var el = document.getElementById('ss3'), tx = document.getElementById('ss3t');
   if (el) el.className = 'sstat unsaved';
-  if (tx) tx.textContent = 'not saved_ 저장하세요';
+  if (tx) tx.textContent = t('status_unsaved_prompt');
 }
 
 function memoOpenLoad() {
   APP.loadFor = 3; APP.loadSel = '';
   var ll = document.getElementById('llist');
-  ll.innerHTML = '<div style="color:var(--txt3);font-size:13px;padding:14px;text-align:center">불러오는 중...</div>';
+  ll.innerHTML = '<div style="color:var(--txt3);font-size:13px;padding:14px;text-align:center">' + escH(t('loading')) + '</div>';
   openModal('m-load');
   callAPI('loadMemoList').then(function(r) {
     ll.innerHTML = '';
-    if (!r || !r.success) { ll.innerHTML = '<div style="color:var(--warn);padding:12px">오류: ' + escH(r ? r.error : '') + '</div>'; return; }
-    if (!r.list || !r.list.length) { ll.innerHTML = '<div style="color:var(--txt3);padding:12px;text-align:center">저장된 파일이 없습니다.</div>'; return; }
+    if (!r || !r.success) { ll.innerHTML = '<div style="color:var(--warn);padding:12px">' + escH(t('toast_error_prefix')) + escH(r ? r.error : '') + '</div>'; return; }
+    if (!r.list || !r.list.length) { ll.innerHTML = '<div style="color:var(--txt3);padding:12px;text-align:center">' + escH(t('toast_no_saved_files')) + '</div>'; return; }
     var sorted = r.list.slice().sort(function(a, b) { return b.name > a.name ? 1 : b.name < a.name ? -1 : 0; });
     sorted.forEach(function(item) {
       var d = document.createElement('div'); d.className = 'litem';
@@ -101,13 +101,13 @@ function memoOpenLoad() {
 }
 
 function memoExecLoad() {
-  if (!APP.loadSel) { showToast('불러올 파일을 선택하세요', true); return; }
-  var nm = APP.loadSel; closeModal('m-load'); showToast('불러오는 중...');
+  if (!APP.loadSel) { showToast(t('toast_select_file_to_load'), true); return; }
+  var nm = APP.loadSel; closeModal('m-load'); showToast(t('loading'));
   callAPI('loadMemo', { fileName: nm }).then(function(r) {
-    if (!r.success) { showToast('오류: ' + r.error, true); return; }
+    if (!r.success) { showToast(t('toast_error_prefix') + r.error, true); return; }
     memoSetFields(r.fields || {});
     if (r.options) { MEMO_STATE.options = Object.assign({ showContent2: true, showIssues: true, showActions: true }, r.options); memoApplyOptions(); }
-    memoClean(nm); showToast('불러오기 완료: ' + nm);
+    memoClean(nm); showToast(t('toast_load_done_prefix') + nm);
   });
 }
 
@@ -118,8 +118,8 @@ function memoExecSave(fn, author) {
     options: MEMO_STATE.options,
     author: author || ''
   }).then(function(r) {
-    if (r.success) { memoClean(fn); var au = r.savedAuthor !== undefined ? r.savedAuthor : ''; showToast('저장 완료: ' + fn + (au ? ' [작성자: ' + au + ']' : '')); }
-    else showToast('오류: ' + r.error, true);
+    if (r.success) { memoClean(fn); var au = r.savedAuthor !== undefined ? r.savedAuthor : ''; showToast(t('toast_save_done_prefix') + fn + (au ? t('toast_author_bracket_prefix') + au + ']' : '')); }
+    else showToast(t('toast_error_prefix') + r.error, true);
   });
 }
 
@@ -138,7 +138,7 @@ function applyMemoOption(k) {
 
 function applyRedTextMemo() {
   if (_lastTA && document.getElementById('page3').contains(_lastTA)) { insertRedMarker(_lastTA, _lastTASel); }
-  else showToast('메모 내용란을 클릭하고 텍스트를 선택한 후 버튼을 누르세요', true);
+  else showToast(t('toast_select_memo_text'), true);
 }
 
 function memoFullscreen() {
@@ -146,7 +146,7 @@ function memoFullscreen() {
   var f = memoGetFields();
   var hd = document.createElement('div');
   hd.style.cssText = 'font-family:var(--fh);font-size:20px;font-weight:700;color:var(--accentD);letter-spacing:2px;margin-bottom:18px;padding-bottom:9px;border-bottom:2px solid var(--panel)';
-  hd.textContent = '◈ 메모/노트' + (f.title ? ' — ' + f.title : ''); fc.appendChild(hd);
+  hd.textContent = '◈ ' + t('tab3_title') + (f.title ? ' — ' + f.title : ''); fc.appendChild(hd);
   var tbl = document.createElement('table');
   tbl.style.cssText = 'width:100%;border-collapse:collapse;font-size:14px;font-family:Noto Sans KR,sans-serif;border:1px solid #a8c4e0';
   var dateVal = (function(s) {
@@ -156,14 +156,14 @@ function memoFullscreen() {
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   })(f.date);
   var rows = [
-    { label: '📌 제목', val: f.title }, { label: '📅 일자', val: dateVal },
-    { label: '📍 장소', val: f.place }, { label: '👥 참석자', val: f.attendees },
-    { label: '📝 회의내용', val: f.content }
+    { label: t('memo_fs_title_lbl'), val: f.title }, { label: t('memo_fs_date_lbl'), val: dateVal },
+    { label: t('memo_fs_place_lbl'), val: f.place }, { label: t('memo_fs_attendees_lbl'), val: f.attendees },
+    { label: t('memo_fs_content_lbl'), val: f.content }
   ];
-  if (MEMO_STATE.options.showContent2 && f.content2) rows.push({ label: '📋 추가', val: f.content2 });
-  if (MEMO_STATE.options.showIssues && f.issues) rows.push({ label: '⚠ 이슈', val: f.issues });
-  if (MEMO_STATE.options.showActions && f.actions) rows.push({ label: '✅ 조치사항', val: f.actions });
-  if (f.remarks) rows.push({ label: '💬 비고', val: f.remarks });
+  if (MEMO_STATE.options.showContent2 && f.content2) rows.push({ label: t('memo_fs_content2_lbl'), val: f.content2 });
+  if (MEMO_STATE.options.showIssues && f.issues) rows.push({ label: t('memo_fs_issues_lbl'), val: f.issues });
+  if (MEMO_STATE.options.showActions && f.actions) rows.push({ label: t('memo_fs_actions_lbl'), val: f.actions });
+  if (f.remarks) rows.push({ label: t('memo_fs_remarks_lbl'), val: f.remarks });
   rows.forEach(function(fld) {
     var tr = document.createElement('tr');
     var th = document.createElement('td');
@@ -191,7 +191,7 @@ function openMemoAiReview() {
     if (f.issues) parts.push('\n[이슈사항]\n' + f.issues);
     if (f.actions) parts.push('\n[조치사항]\n' + f.actions);
     if (f.remarks) parts.push('\n[비고]\n' + f.remarks);
-    if (!parts.length) { showToast('메모 내용을 먼저 입력하세요', true); return; }
+    if (!parts.length) { showToast(t('toast_enter_memo_first'), true); return; }
     _doOpenAiChat(3);
     setTimeout(function() {
       var el = document.getElementById('ai-chat-input');
@@ -201,7 +201,7 @@ function openMemoAiReview() {
 }
 
 function memoExportExcel() {
-  if (typeof XLSX === 'undefined') { showToast('라이브러리 로딩 중', true); return; }
+  if (typeof XLSX === 'undefined') { showToast(t('toast_lib_loading'), true); return; }
   var f = memoGetFields();
   var dateVal = (function(s) {
     if (!s) return s;
@@ -210,25 +210,25 @@ function memoExportExcel() {
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   })(f.date);
   var wsData = [
-    ['■ 회의 메모/노트 — ' + (f.title || '')],
+    ['■ ' + t('tab3_title') + ' — ' + (f.title || '')],
     [],
-    ['구분', '내용'],
-    ['제목', f.title || ''],
-    ['일자', dateVal || ''],
-    ['장소', f.place || ''],
-    ['참석자', f.attendees || ''],
-    ['회의내용', f.content || '']
+    [t('memo_xls_kind'), t('memo_xls_val')],
+    [t('memo_xls_title'), f.title || ''],
+    [t('memo_xls_date'), dateVal || ''],
+    [t('memo_xls_place'), f.place || ''],
+    [t('memo_xls_attendees'), f.attendees || ''],
+    [t('memo_xls_content'), f.content || '']
   ];
-  if (MEMO_STATE.options.showContent2 && f.content2) wsData.push(['추가내용', f.content2]);
-  if (MEMO_STATE.options.showIssues   && f.issues)   wsData.push(['이슈사항', f.issues]);
-  if (MEMO_STATE.options.showActions  && f.actions)  wsData.push(['조치사항', f.actions]);
-  if (f.remarks) wsData.push(['비고', f.remarks]);
+  if (MEMO_STATE.options.showContent2 && f.content2) wsData.push([t('memo_xls_content2'), f.content2]);
+  if (MEMO_STATE.options.showIssues   && f.issues)   wsData.push([t('memo_xls_issues'), f.issues]);
+  if (MEMO_STATE.options.showActions  && f.actions)  wsData.push([t('memo_xls_actions'), f.actions]);
+  if (f.remarks) wsData.push([t('memo_xls_remarks'), f.remarks]);
   var wb = XLSX.utils.book_new();
   var ws = XLSX.utils.aoa_to_sheet(wsData);
   ws['!cols'] = [{ wch: 12 }, { wch: 60 }];
-  XLSX.utils.book_append_sheet(wb, ws, '메모노트');
-  XLSX.writeFile(wb, todayStr() + '_메모노트.xlsx');
-  showToast('엑셀 다운로드 완료');
+  XLSX.utils.book_append_sheet(wb, ws, t('sheet_name3'));
+  XLSX.writeFile(wb, todayStr() + t('fname_suffix3') + '.xlsx');
+  showToast(t('toast_excel_done'));
 }
 
 // execLoad override for memo tab
