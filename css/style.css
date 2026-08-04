@@ -142,6 +142,8 @@ tbody td { border: 1px solid #aac8e0; padding: 1px; vertical-align: top; }
 .ci-date { font-size: 12px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ci-ro { width: 100%; min-height: 32px; background: rgba(0,60,120,.04); border: none; color: var(--txt2); font-family: 'Noto Sans KR', sans-serif; font-size: 13px; padding: 5px 7px; line-height: 1.5; display: block; text-align: center; cursor: default; user-select: none; font-weight: 600; }
 .ci-lt { width: 100%; min-height: 32px; background: transparent; border: none; color: var(--txt); font-family: 'Noto Sans KR', sans-serif; font-size: 14px; padding: 5px 7px; line-height: 1.5; display: block; text-align: center; cursor: default; user-select: none; font-weight: 400; }
+.ci-lt-inp { width: 100%; min-height: 32px; background: rgba(0,150,255,.08); border: none; color: var(--txt); font-family: 'Noto Sans KR', sans-serif; font-size: 14px; padding: 5px 7px; line-height: 1.5; display: none; text-align: center; outline: none; box-sizing: border-box; }
+.ci-lt-inp:focus { background: rgba(0,150,255,.16); }
 
 /* 열 너비 */
 .c-proj{min-width:90px;width:90px}.c-item{min-width:82px;width:82px}.c-vend{min-width:82px;width:82px}
@@ -260,6 +262,10 @@ tbody td { border: 1px solid #aac8e0; padding: 1px; vertical-align: top; }
 .proc-row { display: flex; align-items: center; gap: 9px; }
 .pdot { width: 13px; height: 13px; border-radius: 3px; flex-shrink: 0; }
 .proc-lbl { font-size: 13px; min-width: 50px; color: var(--txt2); font-weight: 600; }
+.proc-row .minp { flex: 1 1 auto; width: auto; min-width: 0; }
+.proc-dur-inp { width: 54px; flex: 0 0 54px; background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--r); color: var(--txt); font-size: 14px; padding: 8px 6px; text-align: center; }
+.proc-dur-inp:focus { outline: none; border-color: var(--accent); }
+.proc-unit { font-size: 12px; color: var(--txt3); flex-shrink: 0; }
 
 /* AI 비밀번호 모달 */
 .ai-pw-error { color: var(--warn); font-size: 12px; margin-top: 6px; display: none; }

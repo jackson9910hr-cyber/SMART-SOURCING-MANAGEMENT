@@ -346,10 +346,10 @@
   <button class="mclose" onclick="closeModal('m-pn')">✕</button>
   <div class="modal-title" data-i18n="m_pn_title">🔧 공정명 입력</div>
   <div class="mrow"><div class="proc-rows">
-    <div class="proc-row"><div class="pdot" style="background:#f0b800"></div><span class="proc-lbl" data-i18n="proc_label_1">공정 1</span><input type="text" id="pn1" class="minp" placeholder="예: 절단" data-i18n-placeholder="proc_ph_1"></div>
-    <div class="proc-row"><div class="pdot" style="background:#e07800"></div><span class="proc-lbl" data-i18n="proc_label_2">공정 2</span><input type="text" id="pn2" class="minp" placeholder="예: 성형" data-i18n-placeholder="proc_ph_2"></div>
-    <div class="proc-row"><div class="pdot" style="background:#00a870"></div><span class="proc-lbl" data-i18n="proc_label_3">공정 3</span><input type="text" id="pn3" class="minp" placeholder="예: 용접" data-i18n-placeholder="proc_ph_3"></div>
-    <div class="proc-row"><div class="pdot" style="background:#1a88ff"></div><span class="proc-lbl" data-i18n="proc_label_4">공정 4</span><input type="text" id="pn4" class="minp" placeholder="예: 검사" data-i18n-placeholder="proc_ph_4"></div>
+    <div class="proc-row"><div class="pdot" style="background:#f0b800"></div><span class="proc-lbl" data-i18n="proc_label_1">공정 1</span><input type="text" id="pn1" class="minp" placeholder="예: 절단" data-i18n-placeholder="proc_ph_1"><input type="number" id="pd1" class="proc-dur-inp" placeholder="기간" min="0"><span class="proc-unit">일</span></div>
+    <div class="proc-row"><div class="pdot" style="background:#e07800"></div><span class="proc-lbl" data-i18n="proc_label_2">공정 2</span><input type="text" id="pn2" class="minp" placeholder="예: 성형" data-i18n-placeholder="proc_ph_2"><input type="number" id="pd2" class="proc-dur-inp" placeholder="기간" min="0"><span class="proc-unit">일</span></div>
+    <div class="proc-row"><div class="pdot" style="background:#00a870"></div><span class="proc-lbl" data-i18n="proc_label_3">공정 3</span><input type="text" id="pn3" class="minp" placeholder="예: 용접" data-i18n-placeholder="proc_ph_3"><input type="number" id="pd3" class="proc-dur-inp" placeholder="기간" min="0"><span class="proc-unit">일</span></div>
+    <div class="proc-row"><div class="pdot" style="background:#1a88ff"></div><span class="proc-lbl" data-i18n="proc_label_4">공정 4</span><input type="text" id="pn4" class="minp" placeholder="예: 검사" data-i18n-placeholder="proc_ph_4"><input type="number" id="pd4" class="proc-dur-inp" placeholder="기간" min="0"><span class="proc-unit">일</span></div>
   </div></div>
   <div class="mact"><button class="btn" onclick="closeModal('m-pn')" data-i18n="btn_cancel">취소</button><button class="btn acc" onclick="applyProcName()" data-i18n="btn_save">저장</button></div>
 </div></div>

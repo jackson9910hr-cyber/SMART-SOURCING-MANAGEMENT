@@ -6,7 +6,7 @@ var APP = {
   currentPage: 1,
   lang: (function() { try { return localStorage.getItem('lang') === 'en' ? 'en' : 'ko'; } catch (e) { return 'ko'; } })(),
   p1: { saved: false, name: '', colVis: { cd: true, pod: true, rd: true }, photos: [] },
-  p2: { saved: false, name: '', pnames: ['','','',''], summary2: '', progress: {}, basedate: '' },
+  p2: { saved: false, name: '', pnames: ['','','',''], pdurs: ['','','',''], summary2: '', progress: {}, basedate: '' },
   p3: { saved: false, name: '' },
   saveFor: 1, loadFor: 1, loadSel: '', delFor: 1, delIdx: -1,
   lastRows: []
@@ -372,6 +372,7 @@ function execSave() {
     callAPI('saveLoad', {
       fileName: fn,
       processNames: APP.p2.pnames,
+      processDurations: APP.p2.pdurs,
       summary2: document.getElementById('p2sum').value,
       rows: rows2,
       progress: progressArr,
@@ -425,6 +426,7 @@ function execLoad() {
     callAPI('loadLoad', { fileName: nm }).then(function(r) {
       if (!r.success) { showToast(t('toast_error_prefix') + r.error, true); return; }
       APP.p2.pnames = r.processNames || APP.p2.pnames;
+      APP.p2.pdurs = r.processDurations || APP.p2.pdurs;
       updateProcHeaders();
       if (!document.getElementById('p2sum').value) { document.getElementById('p2sum').value = r.summary2 || ''; arSumTA(document.getElementById('p2sum')); }
       if (r.basedate) { APP.p2.basedate = r.basedate; document.getElementById('basedate-inp').value = r.basedate; }
