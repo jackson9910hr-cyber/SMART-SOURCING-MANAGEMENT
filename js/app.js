@@ -4,6 +4,7 @@
 
 var APP = {
   currentPage: 1,
+  lang: (function() { try { return localStorage.getItem('lang') === 'en' ? 'en' : 'ko'; } catch (e) { return 'ko'; } })(),
   p1: { saved: false, name: '', colVis: { cd: true, pod: true, rd: true }, photos: [] },
   p2: { saved: false, name: '', pnames: ['','','',''], summary2: '', progress: {}, basedate: '' },
   p3: { saved: false, name: '' },
@@ -65,7 +66,7 @@ function setDirty(pg) {
   if (!el || !tx) return;
   p.saved = false;
   el.className = 'sstat unsaved';
-  tx.textContent = p.name ? 'not saved_ 수정사항 발생' : 'not saved_ 저장하세요';
+  tx.textContent = p.name ? t('status_unsaved_modified') : t('status_unsaved_prompt');
 }
 
 function setClean(pg, name) {
@@ -104,24 +105,24 @@ document.addEventListener('keyup', function() {
 function insertRedMarker(ta, sel) {
   if (!ta) return;
   var v = ta.value, s = sel.s, e = sel.e;
-  if (s === e) { showToast('빨간글씨로 바꿀 텍스트를 먼저 선택하세요', true); return; }
+  if (s === e) { showToast(t('toast_select_text_first'), true); return; }
   var selected = v.substring(s, e);
   ta.value = v.substring(0, s) + '[R]' + selected + '[/R]' + v.substring(e);
   arTA(ta);
   if (ta.parentNode && ta.parentNode.classList.contains('avd-td')) { updateAvdOverlayWithRed(ta); }
   else { updateRedOverlay(ta); }
   setDirty(ta.dataset.pg ? parseInt(ta.dataset.pg) : 1);
-  showToast('빨간글씨 적용 완료');
+  showToast(t('toast_red_text_applied'));
 }
 
 function applyRedText() {
   if (_lastTA && document.getElementById('tb1').contains(_lastTA)) { insertRedMarker(_lastTA, _lastTASel); }
-  else showToast('테이블 셀을 클릭하고 텍스트를 선택한 후 버튼을 누르세요', true);
+  else showToast(t('toast_click_cell_select_text'), true);
 }
 
 function applyRedText2() {
   if (_lastTA && document.getElementById('tb2').contains(_lastTA)) { insertRedMarker(_lastTA, _lastTASel); }
-  else showToast('테이블 셀을 클릭하고 텍스트를 선택한 후 버튼을 누르세요', true);
+  else showToast(t('toast_click_cell_select_text'), true);
 }
 
 function renderRedMarkers(txt) {
@@ -294,7 +295,7 @@ function applyPersonal() {
   APP.p1.colVis.cd  = document.getElementById('ck-cd').checked;
   APP.p1.colVis.pod = document.getElementById('ck-pod').checked;
   APP.p1.colVis.rd  = document.getElementById('ck-rd').checked;
-  closeModal('m-pers'); showToast('표시 설정 적용 완료');
+  closeModal('m-pers'); showToast(t('toast_display_settings_applied'));
 }
 
 function applyColVis(tbl, vis) {
@@ -318,7 +319,7 @@ function delRowPrompt(pg) {
     (function(idx) {
       var tas = rows[idx].querySelectorAll('textarea');
       var d = document.createElement('div'); d.className = 'litem';
-      d.innerHTML = '<span class="litem-name">행 ' + (idx + 1) + '</span><span class="litem-date">' + escH((tas[0] && tas[0].value ? tas[0].value : '').slice(0, 20)) + '</span>';
+      d.innerHTML = '<span class="litem-name">' + escH(t('row_label_prefix')) + (idx + 1) + '</span><span class="litem-date">' + escH((tas[0] && tas[0].value ? tas[0].value : '').slice(0, 20)) + '</span>';
       d.onclick = function() { dl.querySelectorAll('.litem').forEach(function(x) { x.classList.remove('sel'); }); d.classList.add('sel'); APP.delIdx = idx; };
       dl.appendChild(d);
     })(i);
@@ -327,7 +328,7 @@ function delRowPrompt(pg) {
 }
 
 function execDel() {
-  if (APP.delIdx < 0) { showToast('삭제할 행을 선택하세요', true); return; }
+  if (APP.delIdx < 0) { showToast(t('toast_select_row_to_delete'), true); return; }
   document.getElementById(APP.delFor === 1 ? 'tb1' : 'tb2').deleteRow(APP.delIdx);
   renumber(APP.delFor === 1 ? 'tb1' : 'tb2'); closeModal('m-del'); setDirty(APP.delFor);
 }
@@ -343,15 +344,15 @@ function openSave(pg) {
 
 function execSave() {
   var fn = document.getElementById('sv-fn').value.trim();
-  if (!fn) { showToast('파일명을 입력하세요', true); return; }
+  if (!fn) { showToast(t('toast_enter_filename'), true); return; }
   var authorEl = document.getElementById('sv-author');
   var author = authorEl ? authorEl.value.trim() : '';
-  closeModal('m-save'); showToast('저장 중...');
+  closeModal('m-save'); showToast(t('toast_saving'));
   var pg = APP.saveFor;
   var saveOk = function(nm, r) {
     setClean(pg, nm);
     var au = r.savedAuthor !== undefined ? r.savedAuthor : '';
-    showToast('저장 완료: ' + nm + (au ? ' [작성자: ' + au + ']' : ''));
+    showToast(t('toast_save_done_prefix') + nm + (au ? t('toast_author_bracket_prefix') + au + ']' : ''));
   };
   if (pg === 1) {
     callAPI('saveMeeting', {
@@ -363,7 +364,7 @@ function execSave() {
       author: author
     }).then(function(r) {
       if (r.success) { saveOk(fn, r); }
-      else showToast('오류: ' + r.error, true);
+      else showToast(t('toast_error_prefix') + r.error, true);
     });
   } else if (pg === 2) {
     var rows2 = getData2();
@@ -378,7 +379,7 @@ function execSave() {
       author: author
     }).then(function(r) {
       if (r.success) { saveOk(fn, r); }
-      else showToast('오류: ' + r.error, true);
+      else showToast(t('toast_error_prefix') + r.error, true);
     });
   } else if (pg === 3) {
     memoExecSave(fn, author);
@@ -389,12 +390,12 @@ function openLoad(pg) {
   if (pg === 3) { memoOpenLoad(); return; }
   APP.loadFor = pg; APP.loadSel = '';
   var ll = document.getElementById('llist');
-  ll.innerHTML = '<div style="color:var(--txt3);font-size:13px;padding:14px;text-align:center">불러오는 중...</div>';
+  ll.innerHTML = '<div style="color:var(--txt3);font-size:13px;padding:14px;text-align:center">' + escH(t('loading')) + '</div>';
   openModal('m-load');
   callAPI(pg === 1 ? 'loadMeetingList' : 'loadLoadList').then(function(r) {
     ll.innerHTML = '';
-    if (!r || !r.success) { ll.innerHTML = '<div style="color:var(--warn);padding:12px">오류: ' + escH(r ? r.error : '') + '</div>'; return; }
-    if (!r.list || !r.list.length) { ll.innerHTML = '<div style="color:var(--txt3);padding:12px;text-align:center">저장된 파일이 없습니다.</div>'; return; }
+    if (!r || !r.success) { ll.innerHTML = '<div style="color:var(--warn);padding:12px">' + escH(t('toast_error_prefix')) + escH(r ? r.error : '') + '</div>'; return; }
+    if (!r.list || !r.list.length) { ll.innerHTML = '<div style="color:var(--txt3);padding:12px;text-align:center">' + escH(t('toast_no_saved_files')) + '</div>'; return; }
     var sorted = r.list.slice().sort(function(a,b) { return b.name > a.name ? 1 : b.name < a.name ? -1 : 0; });
     sorted.forEach(function(item) {
       var d = document.createElement('div'); d.className = 'litem';
@@ -408,21 +409,21 @@ function openLoad(pg) {
 }
 
 function execLoad() {
-  if (!APP.loadSel) { showToast('불러올 파일을 선택하세요', true); return; }
-  var nm = APP.loadSel; closeModal('m-load'); showToast('불러오는 중...');
+  if (!APP.loadSel) { showToast(t('toast_select_file_to_load'), true); return; }
+  var nm = APP.loadSel; closeModal('m-load'); showToast(t('loading'));
   var pg = APP.loadFor;
   if (pg === 1) {
     callAPI('loadMeeting', { fileName: nm }).then(function(r) {
-      if (!r.success) { showToast('오류: ' + r.error, true); return; }
+      if (!r.success) { showToast(t('toast_error_prefix') + r.error, true); return; }
       if (!document.getElementById('p1sum').value) { document.getElementById('p1sum').value = r.summary || ''; arSumTA(document.getElementById('p1sum')); }
       if (r.colSettings) APP.p1.colVis = r.colSettings;
       (r.rows || []).forEach(function(row) { addRow1(row.rowData); });
       setTimeout(function() { arAllTA(); checkOverdue1(); refreshAllRedOverlays('tb1'); }, 50);
-      setClean(1, nm); showToast('불러오기 완료: ' + nm);
+      setClean(1, nm); showToast(t('toast_load_done_prefix') + nm);
     });
   } else {
     callAPI('loadLoad', { fileName: nm }).then(function(r) {
-      if (!r.success) { showToast('오류: ' + r.error, true); return; }
+      if (!r.success) { showToast(t('toast_error_prefix') + r.error, true); return; }
       APP.p2.pnames = r.processNames || APP.p2.pnames;
       updateProcHeaders();
       if (!document.getElementById('p2sum').value) { document.getElementById('p2sum').value = r.summary2 || ''; arSumTA(document.getElementById('p2sum')); }
@@ -439,22 +440,22 @@ function execLoad() {
           var p = APP.p2.progress[idx]; if (p && p.pct !== undefined) updateProgressCell(parseInt(idx), p.pct);
         });
       }, 150);
-      setClean(2, nm); showToast('불러오기 완료: ' + nm);
+      setClean(2, nm); showToast(t('toast_load_done_prefix') + nm);
     });
   }
 }
 
 function execDeleteLoadedFile() {
-  if (!APP.loadSel) { showToast('삭제할 파일을 선택하세요', true); return; }
+  if (!APP.loadSel) { showToast(t('toast_select_file_to_delete'), true); return; }
   var nm = APP.loadSel, pg = APP.loadFor;
-  if (!confirm('"' + nm + '" 파일을 삭제하시겠습니까?')) return;
-  showToast('삭제 중...');
+  if (!confirm('"' + nm + t('confirm_delete_file'))) return;
+  showToast(t('toast_deleting'));
   var actionMap = { 1: 'deleteMeeting', 2: 'deleteLoad', 3: 'deleteMemo' };
   callAPI(actionMap[pg], { fileName: nm }).then(function(r) {
     if (r && r.success) {
-      showToast('삭제 완료: ' + nm); APP.loadSel = '';
+      showToast(t('toast_delete_done_prefix') + nm); APP.loadSel = '';
       openLoad(pg);
-    } else showToast('삭제 실패: ' + (r && r.error ? r.error : ''), true);
+    } else showToast(t('toast_delete_failed_prefix') + (r && r.error ? r.error : ''), true);
   });
 }
 
@@ -491,27 +492,27 @@ function openMailModal() {
 
 function execSendMail() {
   var to = (document.getElementById('mail-to').value || '').trim();
-  if (!to) { showToast('이메일 주소를 입력하세요', true); return; }
+  if (!to) { showToast(t('toast_enter_email'), true); return; }
   closeModal('m-mail');
-  showToast('메일 준비 중...');
+  showToast(t('toast_mail_preparing'));
   var fromFS = APP._mailFromFS;
   if (fromFS) {
-    captureEl(document.getElementById('fscnt'), function(url) { sendMail(url, '협력사 공정관리 협의록', to); }, true);
+    captureEl(document.getElementById('fscnt'), function(url) { sendMail(url, t('mail_subject_default'), to); }, true);
   } else {
     var tmp = document.createElement('div');
     tmp.style.cssText = 'position:fixed;left:-99999px;top:0;width:1200px;background:#fff;padding:24px;border:0';
     document.body.appendChild(tmp); buildFsContent(tmp);
     setTimeout(function() {
-      captureEl(tmp, function(url) { document.body.removeChild(tmp); sendMail(url, '협력사 공정관리 협의록', to); }, true);
+      captureEl(tmp, function(url) { document.body.removeChild(tmp); sendMail(url, t('mail_subject_default'), to); }, true);
     }, 80);
   }
 }
 
 function sendMail(dataUrl, subject, recipient) {
   var b64 = dataUrl.indexOf(',') >= 0 ? dataUrl.split(',')[1] : dataUrl;
-  callAPI('sendReportEmail', { base64Img: b64, subject: subject || '협력사 공정관리 협의록', recipientEmail: recipient }).then(function(r) {
-    if (r && r.success) showToast('메일 송부 완료!');
-    else showToast('메일 실패: ' + (r && r.error ? r.error : 'Unknown'), true);
+  callAPI('sendReportEmail', { base64Img: b64, subject: subject || t('mail_subject_default'), recipientEmail: recipient }).then(function(r) {
+    if (r && r.success) showToast(t('toast_mail_sent'));
+    else showToast(t('toast_mail_failed_prefix') + (r && r.error ? r.error : 'Unknown'), true);
   });
 }
 
@@ -536,7 +537,7 @@ function renderPhotos() {
   APP.p1.photos.forEach(function(g, gi) {
     g.data.forEach(function(d, di) {
       var item = document.createElement('div'); item.className = 'ph-item';
-      var dinp = document.createElement('input'); dinp.type = 'text'; dinp.className = 'ph-dinp'; dinp.placeholder = '날짜 입력'; dinp.value = g.desc[di] || '';
+      var dinp = document.createElement('input'); dinp.type = 'text'; dinp.className = 'ph-dinp'; dinp.placeholder = t('ph_photo_date'); dinp.value = g.desc[di] || '';
       dinp.addEventListener('input', function() { g.desc[di] = dinp.value; setDirty(1); });
       var imgW = document.createElement('div'); imgW.className = 'ph-img'; var img = document.createElement('img'); img.src = d; imgW.appendChild(img);
       var del = document.createElement('button'); del.className = 'ph-del-btn'; del.textContent = '✕';
@@ -581,6 +582,12 @@ function focusBasedateManual() {
 /* ══ 이벤트 초기화 ══ */
 document.addEventListener('DOMContentLoaded', function() {
   initSumTA();
+
+  // 저장된 언어 설정 반영 (기본값: 한국어 — 마크업과 동일하여 변화 없음)
+  var koBtn = document.getElementById('lang-btn-ko'), enBtn = document.getElementById('lang-btn-en');
+  if (koBtn) koBtn.classList.toggle('active', APP.lang === 'ko');
+  if (enBtn) enBtn.classList.toggle('active', APP.lang === 'en');
+  if (typeof renderCurrentLanguage === 'function') renderCurrentLanguage();
 
   // 사진 파일 선택 (phInp 요소가 있을 때만)
   var phInp = document.getElementById('phInp');

@@ -96,9 +96,9 @@ function updateProgressCell(rowIdx, pct) {
 
 function updateProcHeaders() {
   for (var i = 1; i <= 4; i++) {
-    var n = APP.p2.pnames[i - 1] || ('공정' + i);
-    document.getElementById('th-p' + i + 's').textContent = n + ' 착수';
-    document.getElementById('th-p' + i + 'e').textContent = n + ' 완료';
+    var n = APP.p2.pnames[i - 1] || tProc(i);
+    document.getElementById('th-p' + i + 's').textContent = n + t('th2_proc_start');
+    document.getElementById('th-p' + i + 'e').textContent = n + t('th2_proc_end');
   }
 }
 
@@ -109,21 +109,21 @@ function openProcName() {
 
 function applyProcName() {
   for (var i = 1; i <= 4; i++) APP.p2.pnames[i - 1] = document.getElementById('pn' + i).value;
-  updateProcHeaders(); closeModal('m-pn'); showToast('공정명 저장 완료');
+  updateProcHeaders(); closeModal('m-pn'); showToast(t('toast_proc_name_saved'));
   if (document.getElementById('gantt-sec').style.display !== 'none') buildGantt(APP.lastRows);
 }
 
 function updateGanttLegend() {
   var leg = document.getElementById('gleg'); if (!leg) return;
   var lc = [BAR_MAIN_COLOR].concat(PROC_COLORS), pn = APP.p2.pnames;
-  var ln = ['전체(제작)', pn[0] || '공정1', pn[1] || '공정2', pn[2] || '공정3', pn[3] || '공정4'];
+  var ln = [t('gantt_overall_production'), pn[0] || tProc(1), pn[1] || tProc(2), pn[2] || tProc(3), pn[3] || tProc(4)];
   leg.innerHTML = ln.map(function(n, i) {
     return '<div class="leg-item"><div class="leg-dot" style="background:' + lc[i] + '"></div><span>' + escH(n) + '</span></div>';
   }).join('');
 }
 
 function p2Complete() {
-  var rows = getData2(); if (!rows.length) { showToast('데이터를 먼저 입력하세요', true); return; }
+  var rows = getData2(); if (!rows.length) { showToast(t('toast_enter_data_first'), true); return; }
   var oldProgress = APP.p2.progress;
   rows.sort(function(a, b) {
     var da = parseDate(a[3]), db = parseDate(b[3]);
@@ -229,8 +229,8 @@ function _handleGanttProgressClick(e, td) {
     updateProgressCell(rowIdx, pct);
     setDirty(2);
     buildGantt(APP.lastRows);
-    showToast('행 ' + (rowIdx + 1) + ' 진도율: ' + pct + '%');
-  } catch(err) { showToast('진도율 입력 오류: ' + String(err), true); }
+    showToast(t('toast_row_progress_prefix') + (rowIdx + 1) + t('toast_row_progress_mid') + pct + '%');
+  } catch(err) { showToast(t('toast_progress_input_error') + String(err), true); }
 }
 
 function buildGantt(rows) {
@@ -242,7 +242,7 @@ function buildGantt(rows) {
     if (s && (!mn || s < mn)) mn = new Date(s);
     if (e && (!mx || e > mx)) mx = new Date(e);
   });
-  if (!mn || !mx) { showToast('제작착수일/제작완료일(YYYY-MM-DD)을 입력하세요', true); return; }
+  if (!mn || !mx) { showToast(t('toast_enter_gantt_dates'), true); return; }
   var mos = [], cur = new Date(mn.getFullYear(), mn.getMonth(), 1);
   var endD = new Date(mx.getFullYear(), mx.getMonth() + 1, 0, 23, 59, 59);
   while (cur <= endD) { mos.push({ y: cur.getFullYear(), m: cur.getMonth() }); cur.setMonth(cur.getMonth() + 1); }
@@ -296,7 +296,7 @@ function buildGantt(rows) {
   else mos.forEach(function() { H += '<col style="width:' + MON_W + 'px;min-width:' + MON_W + 'px">'; });
   H += '</colgroup><thead>';
   H += '<tr style="height:' + H1 + 'px">';
-  var fixedLabels = ['#','업체명','프로젝트','품목명','요구납기','착수일','완료일','L/T','비고'];
+  var fixedLabels = [t('gantt_th_num'), t('th2_vend'), t('th2_proj'), t('th2_item'), t('th2_req'), t('gantt_th_start'), t('gantt_th_end'), t('gantt_th_lt'), t('th2_rmk')];
   fwArr.forEach(function(w, i) {
     H += '<th rowspan="2" style="width:' + w + 'px;min-width:' + w + 'px;max-width:' + w + 'px;height:' + (H1 + H2) + 'px;box-sizing:border-box;vertical-align:middle;text-align:center;font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;color:#1e4060;padding:4px 6px;white-space:nowrap;overflow:hidden;' + BORDER + ';' + HDR_BG + '">' + fixedLabels[i] + '</th>';
   });
@@ -341,9 +341,9 @@ function buildGantt(rows) {
       var bx1 = dx(startD), bx2 = dx(endD3);
       if (bx1 !== null && bx2 !== null && bx2 > bx1) {
         sp.push('<defs><linearGradient id="mgr' + ri + '" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#7fe0ff;stop-opacity:0.95"/><stop offset="100%" style="stop-color:#2aaeff;stop-opacity:0.95"/></linearGradient></defs>');
-        sp.push('<rect x="' + bx1.toFixed(2) + '" y="' + mainY + '" width="' + (bx2 - bx1).toFixed(2) + '" height="' + mainH + '" rx="3" ry="3" fill="url(#mgr' + ri + ')" style="cursor:pointer" data-tip-label="' + escH('전체(제작)') + '" data-tip-start="' + escH(_fmtTipDate(startD)) + '" data-tip-end="' + escH(_fmtTipDate(endD3)) + '"/>');
+        sp.push('<rect x="' + bx1.toFixed(2) + '" y="' + mainY + '" width="' + (bx2 - bx1).toFixed(2) + '" height="' + mainH + '" rx="3" ry="3" fill="url(#mgr' + ri + ')" style="cursor:pointer" data-tip-label="' + escH(t('gantt_overall_production')) + '" data-tip-start="' + escH(_fmtTipDate(startD)) + '" data-tip-end="' + escH(_fmtTipDate(endD3)) + '"/>');
         if (!_ganttBarsData[ri]) _ganttBarsData[ri] = [];
-        _ganttBarsData[ri].push({ label: '전체(제작)', start: _fmtTipDate(startD), end: _fmtTipDate(endD3), x1: bx1, x2: bx2, y1: mainY, y2: mainY+mainH });
+        _ganttBarsData[ri].push({ label: t('gantt_overall_production'), start: _fmtTipDate(startD), end: _fmtTipDate(endD3), x1: bx1, x2: bx2, y1: mainY, y2: mainY+mainH });
       }
     }
     function clampX(x) { return Math.max(0, Math.min(SVG_W, x)); }
@@ -362,7 +362,7 @@ function buildGantt(rows) {
     var validProcs = procs.filter(function(p) { return p.s && p.e && p.e > p.s; });
     if (validProcs.length === 1) {
       var _vp0 = validProcs[0];
-      var _pn0 = APP.p2.pnames[_vp0.ci] || ('공정' + (_vp0.ci + 1));
+      var _pn0 = APP.p2.pnames[_vp0.ci] || tProc(_vp0.ci + 1);
       drawRect(dx(_vp0.s), dx(_vp0.e), mainY, mainH, PROC_COLORS[_vp0.ci], 0, 0.92, null,
         _pn0, _fmtTipDate(_vp0.s), _fmtTipDate(_vp0.e));
     } else if (validProcs.length >= 2) {
@@ -374,7 +374,7 @@ function buildGantt(rows) {
         if (!act.length) continue;
         var xA = dx(ta2), xB = dx(tb2); if (xA === null || xB === null || xB <= xA) continue;
         if (act.length === 1) {
-          var _pnA = APP.p2.pnames[act[0].ci] || ('공정' + (act[0].ci + 1));
+          var _pnA = APP.p2.pnames[act[0].ci] || tProc(act[0].ci + 1);
           drawRect(xA, xB, mainY, mainH, PROC_COLORS[act[0].ci], 0, 0.92, null,
             _pnA, _fmtTipDate(act[0].s), _fmtTipDate(act[0].e));
         } else {
@@ -383,7 +383,7 @@ function buildGantt(rows) {
           sp.push('<defs><clipPath id="' + clipId + '"><rect x="' + cx1.toFixed(2) + '" y="' + mainY + '" width="' + (cx2 - cx1).toFixed(2) + '" height="' + mainH + '" /></clipPath></defs>');
           var gap = 1, laneH = (mainH - gap * (act.length - 1)) / act.length; if (laneH < 6) { gap = 0; laneH = mainH / act.length; }
           for (var k = 0; k < act.length; k++) {
-            var _pnK = APP.p2.pnames[act[k].ci] || ('공정' + (act[k].ci + 1));
+            var _pnK = APP.p2.pnames[act[k].ci] || tProc(act[k].ci + 1);
             drawRect(xA, xB, mainY + k * (laneH + gap), laneH, PROC_COLORS[act[k].ci], 0, 0.92, clipId,
               _pnK, _fmtTipDate(act[k].s), _fmtTipDate(act[k].e));
           }
@@ -426,14 +426,14 @@ function ganttFullscreen() {
   var fc = document.getElementById('fscnt2'); fc.innerHTML = '';
   var title = document.createElement('div');
   title.style.cssText = 'font-family:var(--fh);font-size:20px;font-weight:700;color:var(--accentD);letter-spacing:2px;margin-bottom:12px;text-transform:uppercase;padding-bottom:9px;border-bottom:2px solid var(--panel)';
-  title.textContent = '◈ 업체/품목별 부하관리 · PROCESS GANTT CHART'; fc.appendChild(title);
+  title.textContent = t('gantt_fs_title'); fc.appendChild(title);
   var rows = APP.lastRows;
   if (!rows || !rows.length) {
-    fc.innerHTML += '<div style="color:var(--txt3);padding:20px;text-align:center">간트 데이터가 없습니다. 작성완료 버튼을 먼저 눌러주세요.</div>';
+    fc.innerHTML += '<div style="color:var(--txt3);padding:20px;text-align:center">' + escH(t('gantt_no_data')) + '</div>';
     document.getElementById('fsov2').classList.add('active'); return;
   }
-  var sLbl = document.createElement('div'); sLbl.style.cssText = 'font-family:var(--fh);font-size:13px;font-weight:700;color:var(--txt2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px'; sLbl.textContent = '■ 부하분석 SUMMARY';
-  var sv = document.createElement('div'); sv.style.cssText = 'font-size:14px;color:var(--txt);background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:9px 13px;margin-bottom:14px;white-space:pre-wrap;line-height:1.7;box-sizing:border-box;width:100%'; sv.textContent = document.getElementById('p2sum').value || '(요약 없음)';
+  var sLbl = document.createElement('div'); sLbl.style.cssText = 'font-family:var(--fh);font-size:13px;font-weight:700;color:var(--txt2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px'; sLbl.textContent = t('sum2_lbl_caps');
+  var sv = document.createElement('div'); sv.style.cssText = 'font-size:14px;color:var(--txt);background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:9px 13px;margin-bottom:14px;white-space:pre-wrap;line-height:1.7;box-sizing:border-box;width:100%'; sv.textContent = document.getElementById('p2sum').value || t('no_summary');
   var ganttOuter = document.getElementById('gantt-outer');
   var fsGanttOuter = document.createElement('div'); fsGanttOuter.className = 'gantt-outer'; fsGanttOuter.style.cssText = 'border:1.5px solid var(--border);border-radius:var(--r);background:var(--bg3);box-shadow:var(--sh);overflow:auto';
   ganttOuter.id = 'gantt-outer-tmp'; fsGanttOuter.id = 'gantt-outer'; document.body.appendChild(fsGanttOuter);
@@ -455,7 +455,7 @@ function ganttFullscreen() {
   [sLbl, sv].forEach(function(el) { if (el.parentNode === fc) fc.removeChild(el); fsWrapper.appendChild(el); });
   var fsLeg = document.createElement('div'); fsLeg.className = 'gantt-legend'; fsLeg.style.cssText = 'margin:0 0 10px 0;';
   var lc = [BAR_MAIN_COLOR].concat(PROC_COLORS), pn = APP.p2.pnames;
-  var ln = ['전체(제작)', pn[0] || '공정1', pn[1] || '공정2', pn[2] || '공정3', pn[3] || '공정4'];
+  var ln = [t('gantt_overall_production'), pn[0] || tProc(1), pn[1] || tProc(2), pn[2] || tProc(3), pn[3] || tProc(4)];
   ln.forEach(function(n, i) {
     var item = document.createElement('div'); item.className = 'leg-item';
     item.innerHTML = '<div class="leg-dot" style="background:' + lc[i] + '"></div><span>' + escH(n) + '</span>';
@@ -471,13 +471,13 @@ function closeFS2() {
   if (tip) tip.classList.remove('visible');
 }
 
-function ganttShare() { showToast('캡쳐 중...'); captureGanttFull(function(url) { dlOrShare(url, '간트차트.jpg'); showToast('다운로드/공유 실행'); }, false); }
-function ganttMail() { showToast('메일 준비 중...'); captureGanttFull(function(url) { sendMail(url, '부하관리 간트차트'); }, true); }
+function ganttShare() { showToast(t('toast_capturing')); captureGanttFull(function(url) { dlOrShare(url, t('fname_gantt')); showToast(t('toast_dl_share_run')); }, false); }
+function ganttMail() { showToast(t('toast_mail_preparing')); captureGanttFull(function(url) { sendMail(url, t('mail_subject_gantt')); }, true); }
 function ganttShareFromFs() {
-  showToast('캡쳐 중...');
+  showToast(t('toast_capturing'));
   var fsov2 = document.getElementById('fsov2');
   html2canvas(fsov2, { backgroundColor: '#ffffff', scale: 1.5, useCORS: true, logging: false, scrollX: 0, scrollY: -fsov2.scrollTop, x: 0, y: 0, width: fsov2.scrollWidth, height: fsov2.scrollHeight, windowWidth: fsov2.scrollWidth, windowHeight: fsov2.scrollHeight })
-  .then(function(c) { dlOrShare(c.toDataURL('image/jpeg', 0.9), '간트차트.jpg'); showToast('다운로드/공유 실행'); });
+  .then(function(c) { dlOrShare(c.toDataURL('image/jpeg', 0.9), t('fname_gantt')); showToast(t('toast_dl_share_run')); });
 }
 
 function captureGanttFull(cb, forMail) {
@@ -493,17 +493,17 @@ function captureGanttFull(cb, forMail) {
 }
 
 function doExcel2() {
-  if (typeof XLSX === 'undefined') { showToast('라이브러리 로딩 중', true); return; }
+  if (typeof XLSX === 'undefined') { showToast(t('toast_lib_loading'), true); return; }
 
   var pnames = APP.p2.pnames;
-  var pn = [pnames[0]||'공정1', pnames[1]||'공정2', pnames[2]||'공정3', pnames[3]||'공정4'];
+  var pn = [pnames[0]||tProc(1), pnames[1]||tProc(2), pnames[2]||tProc(3), pnames[3]||tProc(4)];
 
   var headers = [
-    '#', '업체명', '프로젝트', '품목명',
-    '요구납기', '제작착수일', '제작완료일', 'L/T(개월)', '비고',
-    pn[0]+' 착수', pn[0]+' 완료', pn[1]+' 착수', pn[1]+' 완료',
-    pn[2]+' 착수', pn[2]+' 완료', pn[3]+' 착수', pn[3]+' 완료',
-    '진도율'
+    '#', t('th2_vend'), t('th2_proj'), t('th2_item'),
+    t('th2_req'), t('th2_start'), t('th2_end'), t('th2_lt'), t('th2_rmk'),
+    pn[0]+t('th2_proc_start'), pn[0]+t('th2_proc_end'), pn[1]+t('th2_proc_start'), pn[1]+t('th2_proc_end'),
+    pn[2]+t('th2_proc_start'), pn[2]+t('th2_proc_end'), pn[3]+t('th2_proc_start'), pn[3]+t('th2_proc_end'),
+    t('th2_progress')
   ];
 
   var rows = getData2();
@@ -511,7 +511,7 @@ function doExcel2() {
   var wsData = [];
 
   var sumVal = document.getElementById('p2sum').value || '';
-  wsData.push(['■ 부하분석 SUMMARY']);
+  wsData.push([t('sum2_lbl_caps')]);
   sumVal.split('\n').forEach(function(line) { wsData.push([line]); });
   wsData.push([]);
   wsData.push(headers);
@@ -529,7 +529,7 @@ function doExcel2() {
   });
 
   var ws = XLSX.utils.aoa_to_sheet(wsData);
-  XLSX.utils.book_append_sheet(wb, ws, '업체_품목별 부하관리');
-  XLSX.writeFile(wb, todayStr() + '_부하관리.xlsx');
-  showToast('엑셀 다운로드 완료');
+  XLSX.utils.book_append_sheet(wb, ws, t('sheet_name2'));
+  XLSX.writeFile(wb, todayStr() + t('fname_suffix2') + '.xlsx');
+  showToast(t('toast_excel_done'));
 }
