@@ -13,6 +13,52 @@ function calcLT(startStr, endStr) {
   return String(Math.round(diffMonths));
 }
 
+function addDays(d, days) {
+  var nd = new Date(d.getTime());
+  nd.setDate(nd.getDate() + days);
+  return nd;
+}
+
+function subtractDays(d, days) { return addDays(d, -days); }
+
+function subtractMonths(d, months) {
+  var nd = new Date(d.getTime());
+  nd.setMonth(nd.getMonth() - months);
+  return nd;
+}
+
+var PROC_START_IDX = [7, 9, 11, 13];
+var PROC_END_IDX   = [8, 10, 12, 14];
+
+function updateLTCell(tr) {
+  var tas = tr.querySelectorAll('textarea');
+  var sVal = tas[4] ? tas[4].value.trim() : '';
+  var eVal = tas[5] ? tas[5].value.trim() : '';
+  var ltDiv = tr.querySelector('.ci-lt');
+  var ltInp = tr.querySelector('.ci-lt-inp');
+  if (!ltDiv || !ltInp) return;
+  if (!sVal && eVal) {
+    ltDiv.style.display = 'none'; ltInp.style.display = 'block';
+  } else {
+    ltInp.style.display = 'none'; ltInp.value = '';
+    ltDiv.style.display = 'block'; ltDiv.textContent = calcLT(sVal, eVal);
+  }
+}
+
+function commitLTInput(tr) {
+  var tas = tr.querySelectorAll('textarea');
+  var ltInp = tr.querySelector('.ci-lt-inp');
+  if (!tas[4] || !tas[5] || !ltInp) return;
+  var eDate = parseDate(tas[5].value.trim());
+  var ltVal = parseInt(ltInp.value, 10);
+  if (eDate && !tas[4].value.trim() && !isNaN(ltVal) && ltVal > 0) {
+    tas[4].value = normDate(subtractMonths(eDate, ltVal));
+    arTA(tas[4]); setDirty(2); checkOverdue2();
+  } else {
+    updateLTCell(tr);
+  }
+}
+
 function calcProgress(rowIdx) {
   var p = APP.p2.progress[rowIdx];
   if (!p || p.pct === undefined) return '';
@@ -31,11 +77,11 @@ function addRow2(vals) {
     tr.appendChild(makeTD(rv, CLS2[i], 2, CTR2[i], isDate));
   }
 
-  // L/T 셀 (착수~완료 자동계산)
+  // L/T 셀 (착수~완료 자동계산 / 착수일 공란+완료일 있을 때 직접입력 가능)
   var ltTd = document.createElement('td'); ltTd.className = 'c2-lt';
   var ltDiv = document.createElement('div'); ltDiv.className = 'ci-lt';
-  if (vals) ltDiv.textContent = calcLT(vals[4], vals[5]);
-  ltTd.appendChild(ltDiv);
+  var ltInp = document.createElement('input'); ltInp.type = 'text'; ltInp.className = 'ci-lt-inp'; ltInp.placeholder = 'LT입력';
+  ltTd.appendChild(ltDiv); ltTd.appendChild(ltInp);
   var allTds = tr.querySelectorAll('td');
   tr.insertBefore(ltTd, allTds[7]); // 완료일(6번) 다음, 비고(7번) 앞
 
@@ -49,13 +95,31 @@ function addRow2(vals) {
 
   // L/T 자동 업데이트 이벤트
   var allTA = tr.querySelectorAll('textarea');
-  function updateLT() {
-    var sVal = allTA[4] ? allTA[4].value : '';
-    var eVal = allTA[5] ? allTA[5].value : '';
-    ltDiv.textContent = calcLT(sVal, eVal);
-  }
-  if (allTA[4]) allTA[4].addEventListener('input', updateLT);
-  if (allTA[5]) allTA[5].addEventListener('input', updateLT);
+  if (allTA[4]) allTA[4].addEventListener('input', function() { updateLTCell(tr); });
+  if (allTA[5]) allTA[5].addEventListener('input', function() { updateLTCell(tr); });
+  ltInp.addEventListener('blur', function() { commitLTInput(tr); });
+  ltInp.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); ltInp.blur(); } });
+  updateLTCell(tr);
+
+  // 공정1~4 착수/완료 표준기간 자동계산 (비어있는 쪽만 채움)
+  PROC_START_IDX.forEach(function(sIdx, pIdx) {
+    var sTA = allTA[sIdx], eTA = allTA[PROC_END_IDX[pIdx]];
+    if (!sTA || !eTA) return;
+    sTA.addEventListener('input', function() {
+      var dur = parseInt(APP.p2.pdurs[pIdx], 10);
+      var sDate = parseDate(sTA.value.trim());
+      if (sDate && !isNaN(dur) && dur > 0 && !eTA.value.trim()) {
+        eTA.value = normDate(addDays(sDate, dur)); arTA(eTA); setDirty(2);
+      }
+    });
+    eTA.addEventListener('input', function() {
+      var dur = parseInt(APP.p2.pdurs[pIdx], 10);
+      var eDate = parseDate(eTA.value.trim());
+      if (eDate && !isNaN(dur) && dur > 0 && !sTA.value.trim()) {
+        sTA.value = normDate(subtractDays(eDate, dur)); arTA(sTA); setDirty(2);
+      }
+    });
+  });
 
   document.getElementById('tb2').appendChild(tr);
   setDirty(2);
@@ -78,8 +142,7 @@ function checkOverdue2() {
     var req = parseDate(tas[3].value.trim()), end = parseDate(tas[5].value.trim());
     if (req && end && end > req) { tas[5].style.color = 'var(--warn)'; tas[5].style.fontWeight = '700'; }
     else { tas[5].style.color = ''; tas[5].style.fontWeight = ''; }
-    var ltDiv = rows[i].querySelector('.ci-lt');
-    if (ltDiv) ltDiv.textContent = calcLT(tas[4].value, tas[5].value);
+    updateLTCell(rows[i]);
   }
 }
 
@@ -103,13 +166,21 @@ function updateProcHeaders() {
 }
 
 function openProcName() {
-  for (var i = 1; i <= 4; i++) document.getElementById('pn' + i).value = APP.p2.pnames[i - 1] || '';
+  for (var i = 1; i <= 4; i++) {
+    document.getElementById('pn' + i).value = APP.p2.pnames[i - 1] || '';
+    document.getElementById('pd' + i).value = APP.p2.pdurs[i - 1] || '';
+  }
   openModal('m-pn');
 }
 
 function applyProcName() {
-  for (var i = 1; i <= 4; i++) APP.p2.pnames[i - 1] = document.getElementById('pn' + i).value;
-  updateProcHeaders(); closeModal('m-pn'); showToast(t('toast_proc_name_saved'));
+  for (var i = 1; i <= 4; i++) {
+    APP.p2.pnames[i - 1] = document.getElementById('pn' + i).value;
+    var durRaw = document.getElementById('pd' + i).value.trim();
+    var durNum = parseInt(durRaw, 10);
+    APP.p2.pdurs[i - 1] = (durRaw && !isNaN(durNum) && durNum >= 0) ? String(durNum) : '';
+  }
+  updateProcHeaders(); closeModal('m-pn'); showToast(t('toast_proc_name_saved')); setDirty(2);
   if (document.getElementById('gantt-sec').style.display !== 'none') buildGantt(APP.lastRows);
 }
 

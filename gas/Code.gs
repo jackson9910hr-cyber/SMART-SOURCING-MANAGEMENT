@@ -204,6 +204,7 @@ function saveLoad(payload) {
     var sheet        = getSheet(SHEET2);
     var fileName     = payload.fileName;
     var processNames = payload.processNames || [];
+    var processDurations = payload.processDurations || [];
     var summary2     = payload.summary2 || '';
     var rows         = payload.rows || [];
     var progress     = payload.progress || [];
@@ -212,7 +213,7 @@ function saveLoad(payload) {
     var author = payload.author || '';
     deleteByFileName(sheet, fileName, 'LOAD_');
     sheet.appendRow(['LOAD_META', fileName, ts, JSON.stringify(processNames), 0,
-      summary2,'','','','','','','','','','','','','','',basedate, author,'','','','','']);
+      summary2,'','','','','','','','','','','','','','',basedate, author,'','','','','', JSON.stringify(processDurations)]);
     for (var i = 0; i < rows.length; i++) {
       var row  = rows[i] || [];
       var prog = progress[i] ? JSON.stringify(progress[i]) : '';
@@ -246,12 +247,13 @@ function loadLoad(fileName) {
   try {
     var sheet = getSheet(SHEET2);
     var data  = sheet.getDataRange().getValues();
-    var processNames = [], summary2 = '', rows = [], progress = [], basedate = '';
+    var processNames = [], processDurations = [], summary2 = '', rows = [], progress = [], basedate = '';
     for (var i = 0; i < data.length; i++) {
       var r = data[i];
       if (String(r[1]) !== String(fileName)) continue;
       if (String(r[0]) === 'LOAD_META') {
         try { processNames = JSON.parse(String(r[3])); } catch(_) {}
+        try { processDurations = JSON.parse(String(r[27])); } catch(_) {}
         summary2 = String(r[5] || '');
         basedate = String(r[20] || '');
       }
@@ -271,8 +273,8 @@ function loadLoad(fileName) {
         progress.push(progObj);
       }
     }
-    return { success: true, processNames: processNames, summary2: summary2,
-             rows: rows, progress: progress, basedate: basedate };
+    return { success: true, processNames: processNames, processDurations: processDurations,
+             summary2: summary2, rows: rows, progress: progress, basedate: basedate };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
 
