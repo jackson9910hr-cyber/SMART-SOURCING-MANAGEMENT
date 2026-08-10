@@ -15,6 +15,10 @@ function callAPI(action, payload) {
     return r.json();
   })
   .catch(function(err) {
-    return { success: false, error: String(err) };
+    var isNetworkErr = err instanceof TypeError;
+    var msg = isNetworkErr
+      ? 'GAS 웹앱 서버에 연결할 수 없습니다. Apps Script 배포 상태(활성 여부) 및 액세스 권한("모든 사용자")을 확인해주세요. (' + String(err) + ')'
+      : String(err);
+    return { success: false, error: msg };
   });
 }
