@@ -5,10 +5,12 @@ function callAPI(action, payload) {
     showToast('GAS URL이 설정되지 않았습니다. js/config.js에서 GAS_URL을 설정하세요.', true);
     return Promise.resolve({ success: false, error: 'GAS URL not configured' });
   }
-  return fetch(CONFIG.GAS_URL, {
+  var noCacheUrl = CONFIG.GAS_URL + (CONFIG.GAS_URL.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now();
+  return fetch(noCacheUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: action, payload: payload || {} })
+    body: JSON.stringify({ action: action, payload: payload || {} }),
+    cache: 'no-store'
   })
   .then(function(r) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
