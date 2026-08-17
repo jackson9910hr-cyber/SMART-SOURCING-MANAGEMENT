@@ -269,6 +269,97 @@ function makeTD(val, cls, pg, center, isDate) {
   return td;
 }
 
+/* ══ 테이블 컬럼 리사이즈 (엑셀 스타일 드래그) ══ */
+function getColMinWidth(th) {
+  var mw = parseInt(getComputedStyle(th).minWidth, 10);
+  return (!isNaN(mw) && mw > 0) ? mw : 40;
+}
+
+function persistColWidths(table, storageKey) {
+  try {
+    var colgroup = table.querySelector('colgroup'); if (!colgroup) return;
+    var cols = colgroup.children, out = {};
+    for (var i = 0; i < cols.length; i++) {
+      if (cols[i].style.width) out[i] = parseInt(cols[i].style.width, 10);
+    }
+    localStorage.setItem(storageKey, JSON.stringify(out));
+  } catch (e) {}
+}
+
+function restoreColWidths(table, storageKey) {
+  try {
+    var saved = localStorage.getItem(storageKey); if (!saved) return;
+    var widths = JSON.parse(saved);
+    var colgroup = table.querySelector('colgroup'); if (!colgroup) return;
+    var cols = colgroup.children;
+    var ths = table.querySelectorAll('thead th');
+    Object.keys(widths).forEach(function(idx) {
+      var i = parseInt(idx, 10);
+      if (!cols[i] || !ths[i]) return;
+      var w = Math.max(widths[idx], getColMinWidth(ths[i]));
+      cols[i].style.width = w + 'px';
+    });
+  } catch (e) {}
+}
+
+function attachColResizeHandle(table, th, col, storageKey) {
+  var handle = document.createElement('span');
+  handle.className = 'col-resize-handle';
+  th.appendChild(handle);
+  var startX = 0, startW = 0, dragging = false, pendingW = null, raf = null;
+  function applyPending() {
+    raf = null;
+    if (pendingW !== null) { col.style.width = pendingW + 'px'; pendingW = null; }
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    var x = e.clientX;
+    var w = Math.max(getColMinWidth(th), startW + (x - startX));
+    pendingW = w;
+    if (!raf) raf = requestAnimationFrame(applyPending);
+  }
+  function onUp(e) {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('resizing');
+    if (raf) { cancelAnimationFrame(raf); applyPending(); }
+    try { handle.releasePointerCapture(e.pointerId); } catch (ex) {}
+    persistColWidths(table, storageKey);
+    arAllTA();
+  }
+  handle.addEventListener('pointerdown', function(e) {
+    dragging = true; startX = e.clientX; startW = col.getBoundingClientRect().width;
+    handle.classList.add('resizing');
+    try { handle.setPointerCapture(e.pointerId); } catch (ex) {}
+    e.preventDefault();
+  });
+  handle.addEventListener('pointermove', onMove);
+  handle.addEventListener('pointerup', onUp);
+  handle.addEventListener('pointercancel', onUp);
+}
+
+function reapplyColResizeHandles(tableId) {
+  var table = document.getElementById(tableId); if (!table) return;
+  var storageKey = table.dataset.colStorageKey; if (!storageKey) return;
+  var colgroup = table.querySelector('colgroup'); if (!colgroup) return;
+  var cols = colgroup.children;
+  var ths = table.querySelectorAll('thead th');
+  for (var i = 1; i < ths.length; i++) {
+    if (!cols[i]) continue;
+    if (ths[i].querySelector('.col-resize-handle')) continue;
+    attachColResizeHandle(table, ths[i], cols[i], storageKey);
+  }
+}
+
+function makeColumnsResizable(tableId, storageKey) {
+  var table = document.getElementById(tableId); if (!table) return;
+  if (table.dataset.colResizeInit) return;
+  table.dataset.colResizeInit = '1';
+  table.dataset.colStorageKey = storageKey;
+  restoreColWidths(table, storageKey);
+  reapplyColResizeHandles(tableId);
+}
+
 /* ══ 모달 ══ */
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -590,6 +681,9 @@ document.addEventListener('DOMContentLoaded', function() {
   if (koBtn) koBtn.classList.toggle('active', APP.lang === 'ko');
   if (enBtn) enBtn.classList.toggle('active', APP.lang === 'en');
   if (typeof renderCurrentLanguage === 'function') renderCurrentLanguage();
+
+  makeColumnsResizable('t1', 'colw_t1');
+  makeColumnsResizable('t2', 'colw_t2');
 
   // 사진 파일 선택 (phInp 요소가 있을 때만)
   var phInp = document.getElementById('phInp');
