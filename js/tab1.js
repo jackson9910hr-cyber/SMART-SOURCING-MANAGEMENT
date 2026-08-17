@@ -109,18 +109,33 @@ function buildFsContent(targetEl) {
   sv.style.cssText = 'font-size:14px;color:var(--txt);background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:9px 13px;margin-bottom:14px;white-space:pre-wrap;line-height:1.7;box-sizing:border-box;width:100%';
   sv.innerHTML = renderRedMarkers(document.getElementById('p1sum').value || t('no_summary')); fc.appendChild(sv);
   var srcRows = document.getElementById('tb1').rows;
-  var srcThead = document.getElementById('t1').querySelector('thead');
+  var srcTable = document.getElementById('t1');
+  var srcThead = srcTable.querySelector('thead');
+  var srcCols = srcTable.querySelector('colgroup') ? srcTable.querySelector('colgroup').children : null;
   var tbl = document.createElement('table');
-  tbl.style.cssText = 'width:auto;border-collapse:collapse;table-layout:auto;font-size:14px';
+  tbl.style.cssText = 'width:auto;border-collapse:collapse;table-layout:fixed;font-size:14px';
+  var newHrow = null, colgroup = null;
   if (srcThead) {
+    colgroup = document.createElement('colgroup');
     var newThead = document.createElement('thead');
-    var hrow = srcThead.rows[0], newHrow = document.createElement('tr');
+    var hrow = srcThead.rows[0]; newHrow = document.createElement('tr');
+    var totalW = 0;
     for (var ci4 = 0; ci4 < hrow.cells.length; ci4++) {
       var hc = hrow.cells[ci4], newHc = document.createElement('th');
       newHc.textContent = hc.textContent;
+      var mw = getComputedStyle(hc).minWidth;
       newHc.style.cssText = 'background:linear-gradient(180deg,#c4d8f0 0%,#b0ccec 100%);color:#003d8a;font-family:Rajdhani,sans-serif;font-size:12px;font-weight:700;letter-spacing:.8px;padding:8px 10px;border:1px solid #8ab8d8;white-space:nowrap;text-align:center';
+      if (mw && mw !== '0px') newHc.style.minWidth = mw;
       newHrow.appendChild(newHc);
+
+      var col = document.createElement('col');
+      var srcCol = srcCols ? srcCols[ci4] : null;
+      var seedW = srcCol && srcCol.style.width ? parseInt(srcCol.style.width, 10) : Math.round(hc.getBoundingClientRect().width);
+      if (seedW) { col.style.width = seedW + 'px'; totalW += seedW; }
+      colgroup.appendChild(col);
     }
+    tbl.style.width = totalW + 'px';
+    tbl.appendChild(colgroup);
     newThead.appendChild(newHrow); tbl.appendChild(newThead);
   }
   var tbody = document.createElement('tbody');
@@ -136,7 +151,7 @@ function buildFsContent(targetEl) {
       newTd.style.cssText = 'border:1px solid #aac8e0;padding:1px;vertical-align:top;background:' + rowBg;
       if (ta || avdOv || redOv) {
         var div = document.createElement('div');
-        div.style.cssText = 'padding:5px 10px;font-size:14px;min-height:28px;line-height:1.5;white-space:' + (hasNL ? 'pre' : 'nowrap') + ';text-align:' + (isCenter ? 'center' : 'left');
+        div.style.cssText = 'padding:5px 10px;font-size:14px;min-height:28px;line-height:1.5;white-space:' + (hasNL ? 'pre' : 'nowrap') + ';text-align:' + (isCenter ? 'center' : 'left') + (hasNL ? '' : ';overflow:hidden;text-overflow:ellipsis');
         if (avdOv && avdOv.style.display !== 'none' && avdOv.innerHTML) div.innerHTML = avdOv.innerHTML;
         else if (redOv && redOv.style.display !== 'none' && redOv.innerHTML) div.innerHTML = redOv.innerHTML;
         else if (ta) div.innerHTML = renderRedMarkers(ta.value);
@@ -157,6 +172,14 @@ function buildFsContent(targetEl) {
   inner.appendChild(sLbl);
   if (sv.parentNode === fc) fc.removeChild(sv);
   inner.appendChild(sv); inner.appendChild(tbl); outer.appendChild(inner); fc.appendChild(outer);
+  if (newHrow && colgroup) {
+    restoreColWidths(tbl, 'colw_t1_fs');
+    var newThs = newHrow.children, fsCols = colgroup.children;
+    for (var hi = 1; hi < newThs.length; hi++) {
+      if (!fsCols[hi]) continue;
+      attachColResizeHandle(tbl, newThs[hi], fsCols[hi], 'colw_t1_fs');
+    }
+  }
   if (APP.p1.photos.length) {
     var pa = document.createElement('div'); pa.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px';
     APP.p1.photos.forEach(function(g) {

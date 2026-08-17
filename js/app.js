@@ -399,6 +399,13 @@ function applyColVis(tbl, vis) {
       if (j === 6) cells[j].style.display = vis.rd  ? '' : 'none';
     }
   }
+  var colgroup = tbl.querySelector('colgroup');
+  if (colgroup) {
+    var cols = colgroup.children;
+    if (cols[4]) cols[4].style.display = vis.cd  ? '' : 'none';
+    if (cols[5]) cols[5].style.display = vis.pod ? '' : 'none';
+    if (cols[6]) cols[6].style.display = vis.rd  ? '' : 'none';
+  }
 }
 
 /* ══ 행 삭제 모달 ══ */
