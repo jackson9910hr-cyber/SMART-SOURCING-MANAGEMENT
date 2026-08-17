@@ -571,8 +571,9 @@ function ganttMail() { showToast(t('toast_mail_preparing')); captureGanttFull(fu
 function ganttShareFromFs() {
   showToast(t('toast_capturing'));
   var fsov2 = document.getElementById('fsov2');
+  var saved = neutralizeOverflow(fsov2, false);
   html2canvas(fsov2, { backgroundColor: '#ffffff', scale: 1.5, useCORS: true, logging: false, scrollX: 0, scrollY: -fsov2.scrollTop, x: 0, y: 0, width: fsov2.scrollWidth, height: fsov2.scrollHeight, windowWidth: fsov2.scrollWidth, windowHeight: fsov2.scrollHeight })
-  .then(function(c) { dlOrShare(c.toDataURL('image/jpeg', 0.9), t('fname_gantt')); showToast(t('toast_dl_share_run')); });
+  .then(function(c) { restoreOverflow(saved); dlOrShare(c.toDataURL('image/jpeg', 0.9), t('fname_gantt')); showToast(t('toast_dl_share_run')); });
 }
 
 function captureGanttFull(cb, forMail) {
