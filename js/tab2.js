@@ -326,6 +326,14 @@ function buildGantt(rows) {
     n: 38, v: clamp(64 + maxLen(0) * 8, 82, 240), p: clamp(64 + maxLen(1) * 8, 82, 240),
     i: clamp(64 + maxLen(2) * 8, 82, 240), req: 100, st: 100, en: 100, lt: 58, rm: clamp(40 + maxLen(6) * 7, 60, 200)
   };
+  try {
+    var savedGanttW = JSON.parse(localStorage.getItem('colw_gantt') || '{}');
+    var fwKeys = ['n', 'v', 'p', 'i', 'req', 'st', 'en', 'lt', 'rm'];
+    Object.keys(savedGanttW).forEach(function(idx) {
+      var gi = parseInt(idx, 10);
+      if (gi >= 1 && gi < fwKeys.length) FW[fwKeys[gi]] = Math.max(40, savedGanttW[idx]);
+    });
+  } catch (e) {}
   var fwArr = [FW.n, FW.v, FW.p, FW.i, FW.req, FW.st, FW.en, FW.lt, FW.rm];
   var MON_W = 42;
   if (mos.length > 12) {
@@ -359,18 +367,19 @@ function buildGantt(rows) {
   }
   var outerDivStyle = mos.length > 12 ? 'overflow-x:visible;width:100%;position:relative' : 'overflow-x:auto;width:100%;position:relative';
   var outerDivClass = mos.length > 12 ? 'no-scroll' : '';
-  var tableStyle    = mos.length > 12 ? 'border-collapse:separate;border-spacing:0;table-layout:fixed;width:100%' : 'border-collapse:separate;border-spacing:0;table-layout:fixed';
+  var fixedColsSum  = fwArr.reduce(function(a, b) { return a + b; }, 0);
+  var tableStyle    = mos.length > 12 ? 'border-collapse:separate;border-spacing:0;table-layout:fixed;width:100%' : 'border-collapse:separate;border-spacing:0;table-layout:fixed;width:' + (fixedColsSum + SVG_W) + 'px';
   var H = '<div class="' + outerDivClass + '" style="' + outerDivStyle + '">';
   H += '<table style="' + tableStyle + '" data-mon-w="' + MON_W + '">';
   H += '<colgroup>';
-  fwArr.forEach(function(w) { H += '<col style="width:' + w + 'px;min-width:' + w + 'px">'; });
+  fwArr.forEach(function(w) { H += '<col style="width:' + w + 'px">'; });
   if (mos.length > 12) mos.forEach(function() { H += '<col>'; });
   else mos.forEach(function() { H += '<col style="width:' + MON_W + 'px;min-width:' + MON_W + 'px">'; });
   H += '</colgroup><thead>';
   H += '<tr style="height:' + H1 + 'px">';
   var fixedLabels = [t('gantt_th_num'), t('th2_vend'), t('th2_proj'), t('th2_item'), t('th2_req'), t('gantt_th_start'), t('gantt_th_end'), t('gantt_th_lt'), t('th2_rmk')];
   fwArr.forEach(function(w, i) {
-    H += '<th rowspan="2" style="width:' + w + 'px;min-width:' + w + 'px;max-width:' + w + 'px;height:' + (H1 + H2) + 'px;box-sizing:border-box;vertical-align:middle;text-align:center;font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;color:#1e4060;padding:4px 6px;white-space:nowrap;overflow:hidden;' + BORDER + ';' + HDR_BG + '">' + fixedLabels[i] + '</th>';
+    H += '<th rowspan="2" style="width:' + w + 'px;min-width:40px;height:' + (H1 + H2) + 'px;box-sizing:border-box;vertical-align:middle;text-align:center;font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;color:#1e4060;padding:4px 6px;white-space:nowrap;overflow:hidden;' + BORDER + ';' + HDR_BG + '">' + fixedLabels[i] + '</th>';
   });
   yrKeys.forEach(function(y, yi) {
     var span = yrMap[y];
@@ -491,6 +500,20 @@ function buildGantt(rows) {
   document.getElementById('gantt-outer').innerHTML = H;
   updateGanttLegend();
   _ensureGanttClickDelegate();
+  attachGanttColResizeHandles();
+}
+
+function attachGanttColResizeHandles() {
+  var container = document.getElementById('gantt-outer');
+  var table = container ? container.querySelector('table') : null;
+  if (!table) return;
+  var colgroup = table.querySelector('colgroup'); if (!colgroup) return;
+  var ths = table.querySelectorAll('thead tr:first-child th[rowspan="2"]');
+  var cols = colgroup.children;
+  for (var i = 1; i < ths.length; i++) {
+    if (!cols[i]) continue;
+    attachColResizeHandle(table, ths[i], cols[i], 'colw_gantt');
+  }
 }
 
 /* ══ Gantt 전체화면 ══ */
