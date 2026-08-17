@@ -163,6 +163,7 @@ function updateProcHeaders() {
     document.getElementById('th-p' + i + 's').textContent = n + t('th2_proc_start');
     document.getElementById('th-p' + i + 'e').textContent = n + t('th2_proc_end');
   }
+  if (typeof reapplyColResizeHandles === 'function') reapplyColResizeHandles('t2');
 }
 
 function openProcName() {

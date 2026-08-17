@@ -540,6 +540,7 @@ function renderCurrentLanguage() {
 
   if (typeof updateProcHeaders === 'function') updateProcHeaders();
   if (typeof updateGanttLegend === 'function') updateGanttLegend();
+  if (typeof reapplyColResizeHandles === 'function') { reapplyColResizeHandles('t1'); reapplyColResizeHandles('t2'); }
 
   var ganttSec = document.getElementById('gantt-sec');
   if (ganttSec && ganttSec.style.display !== 'none' && typeof buildGantt === 'function' && APP.lastRows && APP.lastRows.length) {
