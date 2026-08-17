@@ -560,15 +560,39 @@ function execDeleteLoadedFile() {
 }
 
 /* ══ 쳪쳐/공유/메일 ══ */
+/* 캡처 시 리사이즈된 표가 잘리지 않도록, 가로 스크롤을 만드는 중첩 래퍼(overflow-x:auto/.gantt-outer/.twrap)의
+   클리핑을 임시로 해제한다. includeRoot=false면 el 자신은 건드리지 않고 자손만 대상으로 한다. */
+function neutralizeOverflow(el, includeRoot) {
+  var saved = [];
+  var targets = includeRoot === false ? [] : [el];
+  targets = targets.concat(Array.prototype.slice.call(el.querySelectorAll('*')));
+  targets.forEach(function(t) {
+    var isRoot = (t === el);
+    var cs = getComputedStyle(t);
+    var isScrollWrapper = isRoot || cs.overflowX === 'auto' || cs.overflowX === 'scroll' ||
+      t.classList.contains('gantt-outer') || t.classList.contains('twrap') ||
+      t.id === 'fscnt' || t.id === 'fscnt2';
+    if (isScrollWrapper) {
+      saved.push({ t: t, x: t.style.overflowX, y: t.style.overflowY });
+      t.style.overflowX = 'visible'; t.style.overflowY = 'visible';
+    }
+  });
+  return saved;
+}
+
+function restoreOverflow(saved) {
+  saved.forEach(function(s) { s.t.style.overflowX = s.x; s.t.style.overflowY = s.y; });
+}
+
 function captureEl(el, cb, forMail) {
-  var ow = el.style.overflow; el.style.overflow = 'visible';
+  var saved = neutralizeOverflow(el);
   var sc = forMail ? 0.7 : 1.5; var q = forMail ? 0.55 : 0.9;
   html2canvas(el, {
     backgroundColor: '#ffffff', scale: sc, useCORS: true, logging: false,
     scrollX: 0, scrollY: 0,
     width: el.scrollWidth, height: el.scrollHeight,
     windowWidth: el.scrollWidth, windowHeight: el.scrollHeight
-  }).then(function(c) { el.style.overflow = ow; cb(c.toDataURL('image/jpeg', q)); });
+  }).then(function(c) { restoreOverflow(saved); cb(c.toDataURL('image/jpeg', q)); });
 }
 
 function dlOrShare(url, fname) {
