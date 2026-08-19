@@ -360,6 +360,47 @@ function makeColumnsResizable(tableId, storageKey) {
   reapplyColResizeHandles(tableId);
 }
 
+/* ══ 단일 요소 너비 드래그 리사이즈 (표가 아닌 박스용, 예: 전체화면 Summary 박스) ══ */
+function makeWidthResizable(el, storageKey, minWidth) {
+  minWidth = minWidth || 100;
+  try {
+    var saved = localStorage.getItem(storageKey);
+    if (saved) { var w = Math.max(parseInt(saved, 10), minWidth); if (w) el.style.width = w + 'px'; }
+  } catch (e) {}
+  el.style.position = 'relative';
+  var handle = document.createElement('span');
+  handle.className = 'col-resize-handle';
+  el.appendChild(handle);
+  var startX = 0, startW = 0, dragging = false, pendingW = null, raf = null;
+  function applyPending() {
+    raf = null;
+    if (pendingW !== null) { el.style.width = pendingW + 'px'; pendingW = null; }
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    var w = Math.max(minWidth, startW + (e.clientX - startX));
+    pendingW = w;
+    if (!raf) raf = requestAnimationFrame(applyPending);
+  }
+  function onUp(e) {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('resizing');
+    if (raf) { cancelAnimationFrame(raf); applyPending(); }
+    try { handle.releasePointerCapture(e.pointerId); } catch (ex) {}
+    try { localStorage.setItem(storageKey, String(parseInt(el.style.width, 10))); } catch (ex) {}
+  }
+  handle.addEventListener('pointerdown', function(e) {
+    dragging = true; startX = e.clientX; startW = el.getBoundingClientRect().width;
+    handle.classList.add('resizing');
+    try { handle.setPointerCapture(e.pointerId); } catch (ex) {}
+    e.preventDefault();
+  });
+  handle.addEventListener('pointermove', onMove);
+  handle.addEventListener('pointerup', onUp);
+  handle.addEventListener('pointercancel', onUp);
+}
+
 /* ══ 모달 ══ */
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }

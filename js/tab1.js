@@ -108,6 +108,7 @@ function buildFsContent(targetEl) {
   var sv = document.createElement('div');
   sv.style.cssText = 'font-size:14px;color:var(--txt);background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:9px 13px;margin-bottom:14px;white-space:pre-wrap;line-height:1.7;box-sizing:border-box;width:100%';
   sv.innerHTML = renderRedMarkers(document.getElementById('p1sum').value || t('no_summary')); fc.appendChild(sv);
+  makeWidthResizable(sv, 'w_p1sum_fs', 200);
   var srcRows = document.getElementById('tb1').rows;
   var srcTable = document.getElementById('t1');
   var srcThead = srcTable.querySelector('thead');
