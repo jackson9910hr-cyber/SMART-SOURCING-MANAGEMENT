@@ -89,13 +89,50 @@ function getSheet(name) {
   return sh;
 }
 
-function deleteByFileName(sheet, fileName, prefix) {
-  var data = sheet.getDataRange().getValues();
-  for (var i = data.length - 1; i >= 0; i--) {
-    if (data[i][1] === fileName && String(data[i][0]).indexOf(prefix) === 0) {
-      sheet.deleteRow(i + 1);
+/* 파일명이 일치하는 행 범위(연속 구간) 목록을 반환.
+   컬럼 B(파일명) 한 열만 읽어 전체 스캔 비용을 최소화한다. */
+function findFileRows(sheet, fileName) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 1) return [];
+  var col = sheet.getRange(1, 2, lastRow, 1).getValues();
+  var ranges = [], curStart = -1, curCount = 0;
+  for (var i = 0; i < col.length; i++) {
+    if (String(col[i][0]) === String(fileName)) {
+      if (curStart === -1) { curStart = i + 1; curCount = 1; }
+      else curCount++;
+    } else if (curStart !== -1) {
+      ranges.push({ start: curStart, count: curCount }); curStart = -1; curCount = 0;
     }
   }
+  if (curStart !== -1) ranges.push({ start: curStart, count: curCount });
+  return ranges;
+}
+
+/* fileName에 해당하는 행들을 range 단위로 일괄 삭제 (행별 개별 삭제보다 훨씬 빠름) */
+function deleteFileRows(sheet, fileName) {
+  var ranges = findFileRows(sheet, fileName);
+  for (var i = ranges.length - 1; i >= 0; i--) {
+    sheet.deleteRows(ranges[i].start, ranges[i].count);
+  }
+}
+
+/* setValues()는 모든 행의 열 수가 동일해야 하므로(appendRow와 달리),
+   META/ROW 행의 길이가 서로 다를 수 있는 block을 최대 길이에 맞춰 패딩한다. */
+function padBlock(block) {
+  var maxLen = 0;
+  for (var i = 0; i < block.length; i++) if (block[i].length > maxLen) maxLen = block[i].length;
+  for (var j = 0; j < block.length; j++) {
+    while (block[j].length < maxLen) block[j].push('');
+  }
+  return block;
+}
+
+/* ══ 목록 캐시 (CacheService) ══
+   loadXxxList()는 불러오기 클릭마다 호출되므로 짧은 TTL로 캐시하고,
+   저장/삭제 시 즉시 무효화한다. */
+function listCacheKey(sheetName) { return 'list_' + sheetName; }
+function invalidateListCache(sheetName) {
+  try { CacheService.getScriptCache().remove(listCacheKey(sheetName)); } catch(e) {}
 }
 
 function nowStr() {
@@ -129,58 +166,82 @@ function saveMeeting(payload) {
     var photos   = payload.photos   || [];
     var ts = nowStr();
     var author = payload.author || '';
-    deleteByFileName(sheet, fileName, 'MTG_');
+    deleteFileRows(sheet, fileName);
+    var colSetStr = JSON.stringify(colSet);
     // 열 구성: A~Q = 기존 데이터, R(index17) = 작성자 전용열
-    sheet.appendRow(['MTG_META', fileName, ts, summary, 0, '','','','','','','','','', JSON.stringify(colSet), '', '', author]);
+    var block = [];
+    block.push(['MTG_META', fileName, ts, summary, 0, '','','','','','','','','', colSetStr, '', '', author]);
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i] || [];
       var pd  = (photos[i] && photos[i].data) ? JSON.stringify(photos[i].data) : '';
       var pdc = (photos[i] && photos[i].desc) ? JSON.stringify(photos[i].desc) : '';
-      sheet.appendRow(['MTG_ROW', fileName, ts, summary, i+1,
+      block.push(['MTG_ROW', fileName, ts, summary, i+1,
         row[0]||'', row[1]||'', row[2]||'', row[3]||'', row[4]||'', row[5]||'',
-        row[6]||'', row[7]||'', row[8]||'', JSON.stringify(colSet), pd, pdc, '']);
+        row[6]||'', row[7]||'', row[8]||'', colSetStr, pd, pdc, '']);
     }
+    // 개별 appendRow N회 대신 한 번의 setValues로 일괄 기록 (훨씬 빠름)
+    padBlock(block);
+    var startRow = sheet.getLastRow() + 1;
+    sheet.getRange(startRow, 1, block.length, block[0].length).setValues(block);
+    invalidateListCache(SHEET1);
     return { success: true, savedAuthor: author };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
 
 function loadMeetingList() {
   try {
+    var cache = CacheService.getScriptCache();
+    var key = listCacheKey(SHEET1);
+    var cached = cache.get(key);
+    if (cached) return JSON.parse(cached);
+
     var sheet = getSheet(SHEET1);
-    var data  = sheet.getDataRange().getValues();
-    var map   = {};
-    for (var i = 0; i < data.length; i++) {
-      if (String(data[i][0]) === 'MTG_META') {
-        // index17(열R)=작성자 전용열. 구버전 데이터는 index5(열F) fallback
-        var au = String(data[i][17] || data[i][5] || '');
-        map[String(data[i][1])] = { date: String(data[i][2]), author: au };
-      }
-    }
+    var lastRow = sheet.getLastRow();
     var list = [];
-    for (var k in map) if (map.hasOwnProperty(k)) list.push({ name: k, date: map[k].date, author: map[k].author });
-    list.sort(function(a,b){ return b.date.localeCompare(a.date); });
-    return { success: true, list: list };
+    if (lastRow >= 1) {
+      // 목록 작성에는 A~F열(타입/파일명/일시/구버전작성자)과 R열(작성자)만 필요.
+      // 사진 데이터(P,Q열) 등 무거운 열은 읽지 않아 스캔 비용을 크게 줄인다.
+      var main = sheet.getRange(1, 1, lastRow, 6).getValues();
+      var authorCol = sheet.getRange(1, 18, lastRow, 1).getValues();
+      var map = {};
+      for (var i = 0; i < main.length; i++) {
+        if (String(main[i][0]) === 'MTG_META') {
+          var au = String(authorCol[i][0] || main[i][5] || '');
+          map[String(main[i][1])] = { date: String(main[i][2]), author: au };
+        }
+      }
+      for (var k in map) if (map.hasOwnProperty(k)) list.push({ name: k, date: map[k].date, author: map[k].author });
+      list.sort(function(a,b){ return b.date.localeCompare(a.date); });
+    }
+    var result = { success: true, list: list };
+    try { cache.put(key, JSON.stringify(result), 300); } catch(e) {}
+    return result;
   } catch(e) { return { success: false, error: e.toString() }; }
 }
 
 function loadMeeting(fileName) {
   try {
     var sheet = getSheet(SHEET1);
-    var data  = sheet.getDataRange().getValues();
+    var ranges = findFileRows(sheet, fileName);
     var summary = '', colSettings = {}, rows = [];
-    for (var i = 0; i < data.length; i++) {
-      var r = data[i];
-      if (String(r[1]) !== String(fileName)) continue;
-      if (String(r[0]) === 'MTG_META') {
-        summary = String(r[3] || '');
-        try { colSettings = JSON.parse(String(r[14])); } catch(_) {}
-      }
-      if (String(r[0]) === 'MTG_ROW') {
-        rows.push({ rowData: [
-          String(r[5]||''), String(r[6]||''), String(r[7]||''),
-          toDateStr(r[8]),  toDateStr(r[9]),  toDateStr(r[10]),
-          String(r[11]||''), String(r[12]||''), String(r[13]||'')
-        ]});
+    // loadMeeting은 사진 데이터(P,Q열)를 사용하지 않으므로 O열까지만 읽는다.
+    var numCols = 15;
+    for (var ri = 0; ri < ranges.length; ri++) {
+      var rg = ranges[ri];
+      var block = sheet.getRange(rg.start, 1, rg.count, numCols).getValues();
+      for (var i = 0; i < block.length; i++) {
+        var r = block[i];
+        if (String(r[0]) === 'MTG_META') {
+          summary = String(r[3] || '');
+          try { colSettings = JSON.parse(String(r[14])); } catch(_) {}
+        }
+        if (String(r[0]) === 'MTG_ROW') {
+          rows.push({ rowData: [
+            String(r[5]||''), String(r[6]||''), String(r[7]||''),
+            toDateStr(r[8]),  toDateStr(r[9]),  toDateStr(r[10]),
+            String(r[11]||''), String(r[12]||''), String(r[13]||'')
+          ]});
+        }
       }
     }
     return { success: true, summary: summary, colSettings: colSettings, rows: rows };
@@ -190,10 +251,8 @@ function loadMeeting(fileName) {
 function deleteMeeting(fileName) {
   try {
     var sheet = getSheet(SHEET1);
-    var data = sheet.getDataRange().getValues();
-    for (var i = data.length - 1; i >= 0; i--) {
-      if (String(data[i][1]) === String(fileName)) sheet.deleteRow(i + 1);
-    }
+    deleteFileRows(sheet, fileName);
+    invalidateListCache(SHEET1);
     return { success: true };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
@@ -210,65 +269,86 @@ function saveLoad(payload) {
     var basedate     = payload.basedate || '';
     var ts = nowStr();
     var author = payload.author || '';
-    deleteByFileName(sheet, fileName, 'LOAD_');
-    sheet.appendRow(['LOAD_META', fileName, ts, JSON.stringify(processNames), 0,
+    deleteFileRows(sheet, fileName);
+    var pnStr = JSON.stringify(processNames);
+    var block = [];
+    block.push(['LOAD_META', fileName, ts, pnStr, 0,
       summary2,'','','','','','','','','','','','','','',basedate, author,'','','','','']);
     for (var i = 0; i < rows.length; i++) {
       var row  = rows[i] || [];
       var prog = progress[i] ? JSON.stringify(progress[i]) : '';
-      sheet.appendRow(['LOAD_ROW', fileName, ts, JSON.stringify(processNames), i+1,
+      block.push(['LOAD_ROW', fileName, ts, pnStr, i+1,
         row[0]||'', row[1]||'', row[2]||'', row[3]||'', row[4]||'', row[5]||'',
         row[6]||'', row[7]||'', row[8]||'', row[9]||'', row[10]||'',
         row[11]||'', row[12]||'', row[13]||'', row[14]||'', prog,'','']);
     }
+    padBlock(block);
+    var startRow = sheet.getLastRow() + 1;
+    sheet.getRange(startRow, 1, block.length, block[0].length).setValues(block);
+    invalidateListCache(SHEET2);
     return { success: true, savedAuthor: author };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
 
 function loadLoadList() {
   try {
+    var cache = CacheService.getScriptCache();
+    var key = listCacheKey(SHEET2);
+    var cached = cache.get(key);
+    if (cached) return JSON.parse(cached);
+
     var sheet = getSheet(SHEET2);
-    var data  = sheet.getDataRange().getValues();
-    var map   = {};
-    for (var i = 0; i < data.length; i++) {
-      if (String(data[i][0]) === 'LOAD_META') {
-        map[String(data[i][1])] = { date: String(data[i][2]), author: String(data[i][21] || '') };
-      }
-    }
+    var lastRow = sheet.getLastRow();
     var list = [];
-    for (var k in map) if (map.hasOwnProperty(k)) list.push({ name: k, date: map[k].date, author: map[k].author });
-    list.sort(function(a,b){ return b.date.localeCompare(a.date); });
-    return { success: true, list: list };
+    if (lastRow >= 1) {
+      var main = sheet.getRange(1, 1, lastRow, 3).getValues();
+      var authorCol = sheet.getRange(1, 22, lastRow, 1).getValues();
+      var map = {};
+      for (var i = 0; i < main.length; i++) {
+        if (String(main[i][0]) === 'LOAD_META') {
+          map[String(main[i][1])] = { date: String(main[i][2]), author: String(authorCol[i][0] || '') };
+        }
+      }
+      for (var k in map) if (map.hasOwnProperty(k)) list.push({ name: k, date: map[k].date, author: map[k].author });
+      list.sort(function(a,b){ return b.date.localeCompare(a.date); });
+    }
+    var result = { success: true, list: list };
+    try { cache.put(key, JSON.stringify(result), 300); } catch(e) {}
+    return result;
   } catch(e) { return { success: false, error: e.toString() }; }
 }
 
 function loadLoad(fileName) {
   try {
     var sheet = getSheet(SHEET2);
-    var data  = sheet.getDataRange().getValues();
+    var ranges = findFileRows(sheet, fileName);
     var processNames = [], summary2 = '', rows = [], progress = [], basedate = '';
-    for (var i = 0; i < data.length; i++) {
-      var r = data[i];
-      if (String(r[1]) !== String(fileName)) continue;
-      if (String(r[0]) === 'LOAD_META') {
-        try { processNames = JSON.parse(String(r[3])); } catch(_) {}
-        summary2 = String(r[5] || '');
-        basedate = String(r[20] || '');
-      }
-      if (String(r[0]) === 'LOAD_ROW') {
-        rows.push([
-          String(r[5]||''),  String(r[6]||''),  String(r[7]||''),
-          toDateStr(r[8]),   toDateStr(r[9]),   toDateStr(r[10]),
-          String(r[11]||''),
-          toDateStr(r[12]), toDateStr(r[13]),
-          toDateStr(r[14]), toDateStr(r[15]),
-          toDateStr(r[16]), toDateStr(r[17]),
-          toDateStr(r[18]), toDateStr(r[19])
-        ]);
-        var progVal = String(r[20] || '');
-        var progObj = {};
-        try { if(progVal) progObj = JSON.parse(progVal); } catch(_) {}
-        progress.push(progObj);
+    var numCols = 21;
+    for (var ri = 0; ri < ranges.length; ri++) {
+      var rg = ranges[ri];
+      var block = sheet.getRange(rg.start, 1, rg.count, numCols).getValues();
+      for (var i = 0; i < block.length; i++) {
+        var r = block[i];
+        if (String(r[0]) === 'LOAD_META') {
+          try { processNames = JSON.parse(String(r[3])); } catch(_) {}
+          summary2 = String(r[5] || '');
+          basedate = String(r[20] || '');
+        }
+        if (String(r[0]) === 'LOAD_ROW') {
+          rows.push([
+            String(r[5]||''),  String(r[6]||''),  String(r[7]||''),
+            toDateStr(r[8]),   toDateStr(r[9]),   toDateStr(r[10]),
+            String(r[11]||''),
+            toDateStr(r[12]), toDateStr(r[13]),
+            toDateStr(r[14]), toDateStr(r[15]),
+            toDateStr(r[16]), toDateStr(r[17]),
+            toDateStr(r[18]), toDateStr(r[19])
+          ]);
+          var progVal = String(r[20] || '');
+          var progObj = {};
+          try { if(progVal) progObj = JSON.parse(progVal); } catch(_) {}
+          progress.push(progObj);
+        }
       }
     }
     return { success: true, processNames: processNames, summary2: summary2,
@@ -279,10 +359,8 @@ function loadLoad(fileName) {
 function deleteLoad(fileName) {
   try {
     var sheet = getSheet(SHEET2);
-    var data = sheet.getDataRange().getValues();
-    for (var i = data.length - 1; i >= 0; i--) {
-      if (String(data[i][1]) === String(fileName)) sheet.deleteRow(i + 1);
-    }
+    deleteFileRows(sheet, fileName);
+    invalidateListCache(SHEET2);
     return { success: true };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
@@ -295,12 +373,7 @@ function saveMemo(payload) {
     var fields   = payload.fields   || {};
     var options  = payload.options  || {};
     var ts = nowStr();
-    var data = sheet.getDataRange().getValues();
-    for(var i=data.length-1;i>=0;i--){
-      if(String(data[i][1])===String(fileName)&&String(data[i][0]).indexOf('MEMO_')===0){
-        sheet.deleteRow(i+1);
-      }
-    }
+    deleteFileRows(sheet, fileName);
     var author = payload.author || '';
     sheet.appendRow(['MEMO_META', fileName, ts,
       fields.date||'', fields.place||'', fields.attendees||'',
@@ -308,34 +381,49 @@ function saveMemo(payload) {
       fields.issues||'', fields.actions||'', fields.remarks||'',
       JSON.stringify(options), author
     ]);
+    invalidateListCache(SHEET3);
     return { success: true, savedAuthor: author };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
 
 function loadMemoList() {
   try {
+    var cache = CacheService.getScriptCache();
+    var key = listCacheKey(SHEET3);
+    var cached = cache.get(key);
+    if (cached) return JSON.parse(cached);
+
     var sheet = getSheet(SHEET3);
-    var data  = sheet.getDataRange().getValues();
-    var map   = {};
-    for(var i=0;i<data.length;i++){
-      if(String(data[i][0])==='MEMO_META') {
-        map[String(data[i][1])]={date:String(data[i][2]),author:String(data[i][13]||'')};
+    var lastRow = sheet.getLastRow();
+    var list = [];
+    if (lastRow >= 1) {
+      var main = sheet.getRange(1, 1, lastRow, 3).getValues();
+      var authorCol = sheet.getRange(1, 14, lastRow, 1).getValues();
+      var map = {};
+      for(var i=0;i<main.length;i++){
+        if(String(main[i][0])==='MEMO_META') {
+          map[String(main[i][1])]={date:String(main[i][2]),author:String(authorCol[i][0]||'')};
+        }
       }
+      for(var k in map) if(map.hasOwnProperty(k)) list.push({name:k,date:map[k].date,author:map[k].author});
+      list.sort(function(a,b){return b.date.localeCompare(a.date);});
     }
-    var list=[];
-    for(var k in map) if(map.hasOwnProperty(k)) list.push({name:k,date:map[k].date,author:map[k].author});
-    list.sort(function(a,b){return b.date.localeCompare(a.date);});
-    return { success:true, list:list };
+    var result = { success:true, list:list };
+    try { cache.put(key, JSON.stringify(result), 300); } catch(e) {}
+    return result;
   } catch(e){ return {success:false,error:e.toString()}; }
 }
 
 function loadMemo(fileName) {
   try {
     var sheet = getSheet(SHEET3);
-    var data  = sheet.getDataRange().getValues();
-    for(var i=0;i<data.length;i++){
-      var r=data[i];
-      if(String(r[0])==='MEMO_META'&&String(r[1])===String(fileName)){
+    var ranges = findFileRows(sheet, fileName);
+    if (!ranges.length) return {success:false,error:'파일을 찾을 수 없습니다.'};
+    var rg = ranges[0];
+    var block = sheet.getRange(rg.start, 1, rg.count, 14).getValues();
+    for (var i = 0; i < block.length; i++) {
+      var r = block[i];
+      if(String(r[0])==='MEMO_META'){
         var opts={};
         try{opts=JSON.parse(String(r[12]));}catch(_){}
         return {success:true,
@@ -355,10 +443,8 @@ function loadMemo(fileName) {
 function deleteMemo(fileName) {
   try {
     var sheet = getSheet(SHEET3);
-    var data = sheet.getDataRange().getValues();
-    for (var i = data.length - 1; i >= 0; i--) {
-      if (String(data[i][1]) === String(fileName)) sheet.deleteRow(i + 1);
-    }
+    deleteFileRows(sheet, fileName);
+    invalidateListCache(SHEET3);
     return { success: true };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
