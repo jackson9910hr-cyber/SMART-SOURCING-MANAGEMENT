@@ -21,7 +21,8 @@ function callAPIOnce(action, payload) {
   });
 }
 
-// 응답이 느리거나(타임아웃) 일시적 네트워크 오류일 때 1회 자동 재시도한다.
+// GAS 웹앱(/exec)은 Google 쪽 멀티테넌트 실행 환경 특성상 코드와 무관하게
+// 순간적으로 404/5xx를 반환하는 경우가 있다(수 초 내 재요청하면 대부분 정상화됨).
 // 조회(list/load) 계열은 부작용이 없어 재시도가 안전하고,
 // 저장/삭제(meeting/load/memo)는 GAS 쪽에서 먼저 기존 데이터를 지우고 다시 쓰므로 재시도해도 중복되지 않는다.
 // 메일 발송/AI 호출처럼 재시도 시 중복 부작용(메일 2통 발송, AI 비용 2배)이 생기는 액션은 재시도하지 않는다.
@@ -32,16 +33,27 @@ var RETRYABLE_ACTIONS = {
   verifyAiPassword: 1
 };
 
+var RETRY_ATTEMPTS = 3;          // 최초 1회 + 재시도 2회
+var RETRY_BACKOFF_MS = [600, 1500]; // 재시도 사이 대기 시간(점증)
+
+function delay(ms) { return new Promise(function(res) { setTimeout(res, ms); }); }
+
 function callAPI(action, payload) {
   if (!CONFIG.GAS_URL || CONFIG.GAS_URL === 'YOUR_GAS_DEPLOYMENT_URL_HERE') {
     showToast('GAS URL이 설정되지 않았습니다. js/config.js에서 GAS_URL을 설정하세요.', true);
     return Promise.resolve({ success: false, error: 'GAS URL not configured' });
   }
   var canRetry = !!RETRYABLE_ACTIONS[action];
-  return callAPIOnce(action, payload).catch(function(err) {
-    if (!canRetry) throw err;
-    return callAPIOnce(action, payload);
-  }).catch(function(err) {
+  var maxAttempts = canRetry ? RETRY_ATTEMPTS : 1;
+
+  function attempt(n) {
+    return callAPIOnce(action, payload).catch(function(err) {
+      if (n >= maxAttempts) throw err;
+      return delay(RETRY_BACKOFF_MS[n - 1] || 1500).then(function() { return attempt(n + 1); });
+    });
+  }
+
+  return attempt(1).catch(function(err) {
     var msg = (err && err.name === 'AbortError')
       ? '응답 시간이 초과되었습니다. 네트워크 상태를 확인 후 다시 시도해주세요.'
       : String(err);
