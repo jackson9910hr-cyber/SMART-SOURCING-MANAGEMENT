@@ -111,14 +111,19 @@ function buildFsContent(targetEl) {
   var srcRows = document.getElementById('tb1').rows;
   var srcThead = document.getElementById('t1').querySelector('thead');
   var tbl = document.createElement('table');
-  tbl.style.cssText = 'width:auto;border-collapse:collapse;table-layout:auto;font-size:14px';
+  var COLW1 = [28, 90, 82, 82, 95, 95, 95, 95, 260, 110];
+  var COLW1SUM = COLW1.reduce(function(a, b) { return a + b; }, 0);
+  tbl.style.cssText = 'border-collapse:collapse;table-layout:fixed;font-size:14px;width:' + COLW1SUM + 'px';
+  var cg = document.createElement('colgroup');
+  COLW1.forEach(function(w) { var col = document.createElement('col'); col.style.width = w + 'px'; cg.appendChild(col); });
+  tbl.appendChild(cg);
   if (srcThead) {
     var newThead = document.createElement('thead');
     var hrow = srcThead.rows[0], newHrow = document.createElement('tr');
     for (var ci4 = 0; ci4 < hrow.cells.length; ci4++) {
       var hc = hrow.cells[ci4], newHc = document.createElement('th');
       newHc.textContent = hc.textContent;
-      newHc.style.cssText = 'background:linear-gradient(180deg,#c4d8f0 0%,#b0ccec 100%);color:#003d8a;font-family:Rajdhani,sans-serif;font-size:12px;font-weight:700;letter-spacing:.8px;padding:8px 10px;border:1px solid #8ab8d8;white-space:nowrap;text-align:center';
+      newHc.style.cssText = 'background:linear-gradient(180deg,#c4d8f0 0%,#b0ccec 100%);color:#003d8a;font-family:Rajdhani,sans-serif;font-size:12px;font-weight:700;letter-spacing:.8px;padding:8px 10px;border:1px solid #8ab8d8;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;word-break:break-word;text-align:center';
       newHrow.appendChild(newHc);
     }
     newThead.appendChild(newHrow); tbl.appendChild(newThead);
@@ -132,17 +137,17 @@ function buildFsContent(targetEl) {
       newTd.className = srcTd.className;
       var ta = srcTd.querySelector('textarea'), avdOv = srcTd.querySelector('.avd-overlay'), redOv = srcTd.querySelector('.red-overlay');
       var isCenter = (ta && ta.classList.contains('ci-c')) || (avdOv != null);
-      newTd.style.cssText = 'border:1px solid #aac8e0;padding:1px;vertical-align:top;background:' + rowBg;
+      newTd.style.cssText = 'border:1px solid #aac8e0;padding:1px;vertical-align:top;background:' + rowBg + ';box-sizing:border-box;overflow:hidden';
       if (ta || avdOv || redOv) {
         var div = document.createElement('div');
-        div.style.cssText = 'padding:5px 10px;font-size:14px;min-height:28px;line-height:1.5;white-space:pre-wrap;word-break:break-word;text-align:' + (isCenter ? 'center' : 'left');
+        div.style.cssText = 'padding:5px 10px;font-size:14px;min-height:28px;line-height:1.5;box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;text-align:' + (isCenter ? 'center' : 'left');
         if (avdOv && avdOv.style.display !== 'none' && avdOv.innerHTML) div.innerHTML = avdOv.innerHTML;
         else if (redOv && redOv.style.display !== 'none' && redOv.innerHTML) div.innerHTML = redOv.innerHTML;
         else if (ta) div.innerHTML = renderRedMarkers(ta.value);
         newTd.appendChild(div);
       } else {
         var div2 = document.createElement('div');
-        div2.style.cssText = 'padding:5px 10px;font-size:14px;min-height:28px;line-height:1.5;white-space:pre-wrap;word-break:break-word;text-align:center';
+        div2.style.cssText = 'padding:5px 10px;font-size:14px;min-height:28px;line-height:1.5;box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;text-align:center';
         div2.textContent = srcTd.textContent; newTd.appendChild(div2);
       }
       newTr.appendChild(newTd);
