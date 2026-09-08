@@ -147,19 +147,17 @@ function buildFsContent(targetEl) {
       var srcTd = cells[ci], newTd = document.createElement('td');
       var ta = srcTd.querySelector('textarea'), avdOv = srcTd.querySelector('.avd-overlay'), redOv = srcTd.querySelector('.red-overlay');
       var isCenter = (ta && ta.classList.contains('ci-c')) || (avdOv != null);
-      var rawTxt = ta ? ta.value : '';
-      var hasNL = String(rawTxt || '').indexOf('\n') >= 0;
-      newTd.style.cssText = 'border:1px solid #aac8e0;padding:1px;vertical-align:top;background:' + rowBg;
+      newTd.style.cssText = 'border:1px solid #aac8e0;padding:1px;vertical-align:top;background:' + rowBg + ';box-sizing:border-box;overflow:hidden';
       if (ta || avdOv || redOv) {
         var div = document.createElement('div');
-        div.style.cssText = 'padding:5px 10px;font-size:14px;min-height:28px;line-height:1.5;white-space:' + (hasNL ? 'pre' : 'nowrap') + ';text-align:' + (isCenter ? 'center' : 'left') + (hasNL ? '' : ';overflow:hidden;text-overflow:ellipsis');
+        div.style.cssText = 'padding:5px 10px;font-size:14px;min-height:28px;line-height:1.5;box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;text-align:' + (isCenter ? 'center' : 'left');
         if (avdOv && avdOv.style.display !== 'none' && avdOv.innerHTML) div.innerHTML = avdOv.innerHTML;
         else if (redOv && redOv.style.display !== 'none' && redOv.innerHTML) div.innerHTML = redOv.innerHTML;
         else if (ta) div.innerHTML = renderRedMarkers(ta.value);
         newTd.appendChild(div);
       } else {
         var div2 = document.createElement('div');
-        div2.style.cssText = 'padding:5px 10px;font-size:14px;min-height:28px;line-height:1.5;white-space:nowrap;text-align:center';
+        div2.style.cssText = 'padding:5px 10px;font-size:14px;min-height:28px;line-height:1.5;box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;text-align:center';
         div2.textContent = srcTd.textContent; newTd.appendChild(div2);
       }
       newTr.appendChild(newTd);
