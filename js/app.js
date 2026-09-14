@@ -297,17 +297,6 @@ function applyPersonal() {
   closeModal('m-pers'); showToast('표시 설정 적용 완료');
 }
 
-function applyColVis(tbl, vis) {
-  var rows = tbl.rows;
-  for (var i = 0; i < rows.length; i++) {
-    var cells = rows[i].cells;
-    for (var j = 0; j < cells.length; j++) {
-      if (j === 4) cells[j].style.display = vis.cd  ? '' : 'none';
-      if (j === 5) cells[j].style.display = vis.pod ? '' : 'none';
-      if (j === 6) cells[j].style.display = vis.rd  ? '' : 'none';
-    }
-  }
-}
 
 /* ══ 행 삭제 모달 ══ */
 function delRowPrompt(pg) {

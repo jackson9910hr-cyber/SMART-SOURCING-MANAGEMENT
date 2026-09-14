@@ -111,7 +111,13 @@ function buildFsContent(targetEl) {
   var srcRows = document.getElementById('tb1').rows;
   var srcThead = document.getElementById('t1').querySelector('thead');
   var tbl = document.createElement('table');
-  var COLW1 = [28, 90, 82, 82, 95, 95, 95, 95, 260, 110];
+  var COLDEFS1 = [
+    { w: 28,  vis: true }, { w: 90,  vis: true }, { w: 82, vis: true }, { w: 82, vis: true },
+    { w: 95,  vis: APP.p1.colVis.cd }, { w: 95, vis: APP.p1.colVis.pod }, { w: 95, vis: APP.p1.colVis.rd },
+    { w: 95,  vis: true }, { w: 260, vis: true }, { w: 110, vis: true }
+  ];
+  var visIdx1 = []; COLDEFS1.forEach(function(c, idx) { if (c.vis) visIdx1.push(idx); });
+  var COLW1 = visIdx1.map(function(idx) { return COLDEFS1[idx].w; });
   var COLW1SUM = COLW1.reduce(function(a, b) { return a + b; }, 0);
   tbl.style.cssText = 'border-collapse:collapse;table-layout:fixed;font-size:14px;width:' + COLW1SUM + 'px';
   var cg = document.createElement('colgroup');
@@ -120,8 +126,8 @@ function buildFsContent(targetEl) {
   if (srcThead) {
     var newThead = document.createElement('thead');
     var hrow = srcThead.rows[0], newHrow = document.createElement('tr');
-    for (var ci4 = 0; ci4 < hrow.cells.length; ci4++) {
-      var hc = hrow.cells[ci4], newHc = document.createElement('th');
+    for (var ci4 = 0; ci4 < visIdx1.length; ci4++) {
+      var hc = hrow.cells[visIdx1[ci4]], newHc = document.createElement('th');
       newHc.textContent = hc.textContent;
       newHc.style.cssText = 'background:linear-gradient(180deg,#c4d8f0 0%,#b0ccec 100%);color:#003d8a;font-family:Rajdhani,sans-serif;font-size:12px;font-weight:700;letter-spacing:.8px;padding:8px 10px;border:1px solid #8ab8d8;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;word-break:break-word;text-align:center';
       newHrow.appendChild(newHc);
@@ -132,8 +138,8 @@ function buildFsContent(targetEl) {
   for (var ri = 0; ri < srcRows.length; ri++) {
     var srcTr = srcRows[ri], newTr = document.createElement('tr'), cells = srcTr.cells;
     var rowBg = ri % 2 === 0 ? '#ffffff' : '#f2f7fd';
-    for (var ci = 0; ci < cells.length; ci++) {
-      var srcTd = cells[ci], newTd = document.createElement('td');
+    for (var ci2 = 0; ci2 < visIdx1.length; ci2++) {
+      var srcTd = cells[visIdx1[ci2]], newTd = document.createElement('td');
       newTd.className = srcTd.className;
       var ta = srcTd.querySelector('textarea'), avdOv = srcTd.querySelector('.avd-overlay'), redOv = srcTd.querySelector('.red-overlay');
       var isCenter = (ta && ta.classList.contains('ci-c')) || (avdOv != null);
@@ -154,7 +160,7 @@ function buildFsContent(targetEl) {
     }
     tbody.appendChild(newTr);
   }
-  tbl.appendChild(tbody); applyColVis(tbl, APP.p1.colVis);
+  tbl.appendChild(tbody);
   var outer = document.createElement('div'); outer.style.cssText = 'overflow-x:auto;width:100%';
   var inner = document.createElement('div'); inner.style.cssText = 'display:inline-block;min-width:100%;vertical-align:top;box-sizing:border-box';
   inner.appendChild(tbl); outer.appendChild(inner); fc.appendChild(outer);
