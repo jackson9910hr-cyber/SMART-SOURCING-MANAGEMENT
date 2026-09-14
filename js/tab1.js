@@ -157,10 +157,7 @@ function buildFsContent(targetEl) {
   tbl.appendChild(tbody); applyColVis(tbl, APP.p1.colVis);
   var outer = document.createElement('div'); outer.style.cssText = 'overflow-x:auto;width:100%';
   var inner = document.createElement('div'); inner.style.cssText = 'display:inline-block;min-width:100%;vertical-align:top;box-sizing:border-box';
-  if (sLbl.parentNode === fc) fc.removeChild(sLbl);
-  inner.appendChild(sLbl);
-  if (sv.parentNode === fc) fc.removeChild(sv);
-  inner.appendChild(sv); inner.appendChild(tbl); outer.appendChild(inner); fc.appendChild(outer);
+  inner.appendChild(tbl); outer.appendChild(inner); fc.appendChild(outer);
   if (APP.p1.photos.length) {
     var pa = document.createElement('div'); pa.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px';
     APP.p1.photos.forEach(function(g) {
