@@ -5,6 +5,64 @@
 var CLS1  = ['c-proj','c-item','c-vend','c-cd','c-pod','c-rd','c-avd','c-stat','c-rmk'];
 var CTR1  = [true, true, true, true, true, true, true, false, false];
 var DATE1 = [false, false, false, true, true, true, true, false, false];
+var COLBASE1 = [28, 90, 82, 82, 95, 95, 95, 95, 260, 110]; // #,프로젝트,품목명,업체명,고객납기,PO납기,요구납기,가능납기,제작현황,비고
+
+/* ══ 열 너비 개별 조정 (드래그) ══ */
+function syncTblWidth1(table) {
+  var sum = 0, ths = table.querySelectorAll('thead th');
+  for (var i = 0; i < ths.length; i++) sum += ths[i].getBoundingClientRect().width;
+  table.style.width = Math.round(sum) + 'px'; // table 자체 width를 명시해야 열 폭 합이 그대로 반영됨(auto면 래퍼 폭으로 눌려 다른 열이 눌림)
+}
+
+function initColResize1() {
+  var table = document.getElementById('t1'); if (!table) return;
+  var ths = table.querySelectorAll('thead th'); if (!ths.length) return;
+  var wrap = document.querySelector('.twrap');
+  var baseSum = COLBASE1.reduce(function(a, b) { return a + b; }, 0);
+  var avail = wrap ? wrap.clientWidth : 0;
+  var widths = COLBASE1.slice();
+  if (avail > baseSum) widths[8] += (avail - baseSum); // 여유 폭은 제작현황 열이 흡수 (기본값)
+  ths.forEach(function(th, i) {
+    th.style.width = (widths[i] || COLBASE1[i] || 80) + 'px';
+    var handle = document.createElement('div');
+    handle.className = 'col-resizer';
+    th.appendChild(handle);
+    attachColDrag1(table, th, handle);
+  });
+  syncTblWidth1(table);
+}
+
+function attachColDrag1(table, th, handle) {
+  var startX = 0, startW = 0;
+  function move(clientX) {
+    th.style.width = Math.max(28, startW + (clientX - startX)) + 'px';
+    syncTblWidth1(table);
+  }
+  function onMouseMove(e) { move(e.clientX); }
+  function onTouchMove(e) { if (e.touches[0]) { move(e.touches[0].clientX); e.preventDefault(); } }
+  function onUp() {
+    handle.classList.remove('active');
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onUp);
+    document.removeEventListener('touchmove', onTouchMove);
+    document.removeEventListener('touchend', onUp);
+  }
+  handle.addEventListener('mousedown', function(e) {
+    e.preventDefault(); e.stopPropagation();
+    startX = e.clientX; startW = th.getBoundingClientRect().width;
+    handle.classList.add('active');
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onUp);
+  });
+  handle.addEventListener('touchstart', function(e) {
+    if (!e.touches[0]) return;
+    e.stopPropagation();
+    startX = e.touches[0].clientX; startW = th.getBoundingClientRect().width;
+    handle.classList.add('active');
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onUp);
+  }, { passive: true });
+}
 
 function addRow1(vals) {
   var tbody = document.getElementById('tb1'), tr = document.createElement('tr');
@@ -111,11 +169,12 @@ function buildFsContent(targetEl) {
   var srcRows = document.getElementById('tb1').rows;
   var srcThead = document.getElementById('t1').querySelector('thead');
   var tbl = document.createElement('table');
-  var COLDEFS1 = [
-    { w: 28,  vis: true }, { w: 90,  vis: true }, { w: 82, vis: true }, { w: 82, vis: true },
-    { w: 95,  vis: APP.p1.colVis.cd }, { w: 95, vis: APP.p1.colVis.pod }, { w: 95, vis: APP.p1.colVis.rd },
-    { w: 95,  vis: true }, { w: 260, vis: true }, { w: 110, vis: true }
-  ];
+  var srcHeadCells = srcThead ? srcThead.rows[0].cells : null;
+  var visFlags1 = [true, true, true, true, APP.p1.colVis.cd, APP.p1.colVis.pod, APP.p1.colVis.rd, true, true, true];
+  var COLDEFS1 = COLBASE1.map(function(w, idx) {
+    var live = srcHeadCells && srcHeadCells[idx] ? Math.round(srcHeadCells[idx].getBoundingClientRect().width) : null;
+    return { w: live || w, vis: visFlags1[idx] };
+  });
   var visIdx1 = []; COLDEFS1.forEach(function(c, idx) { if (c.vis) visIdx1.push(idx); });
   var COLW1 = visIdx1.map(function(idx) { return COLDEFS1[idx].w; });
   var COLW1SUM = COLW1.reduce(function(a, b) { return a + b; }, 0);

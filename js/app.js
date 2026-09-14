@@ -570,6 +570,7 @@ function focusBasedateManual() {
 /* ══ 이벤트 초기화 ══ */
 document.addEventListener('DOMContentLoaded', function() {
   initSumTA();
+  initColResize1();
 
   // 사진 파일 선택 (phInp 요소가 있을 때만)
   var phInp = document.getElementById('phInp');
