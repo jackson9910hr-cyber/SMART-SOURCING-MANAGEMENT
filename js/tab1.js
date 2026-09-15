@@ -7,11 +7,43 @@ var CTR1  = [true, true, true, true, true, true, true, false, false];
 var DATE1 = [false, false, false, true, true, true, true, false, false];
 var COLBASE1 = [28, 90, 82, 82, 95, 95, 95, 95, 260, 110]; // #,프로젝트,품목명,업체명,고객납기,PO납기,요구납기,가능납기,제작현황,비고
 
-/* ══ 열 너비 개별 조정 (드래그) ══ */
+/* ══ 열 너비 개별 조정 (드래그) ══
+   table-layout:fixed에서도 table 자체 width를 auto로 두면 브라우저가 래퍼 폭에
+   맞춰 다른 열을 조용히 줄여버리는 것을 확인했으므로, 드래그할 때마다 table의
+   width를 "열 폭 합계"로 직접 갱신해 다른 열은 절대 건드리지 않게 한다. */
+function bindColResizeHandle(handle, getStartWidth, applyWidth) {
+  var startX = 0, startW = 0;
+  function move(clientX) { applyWidth(Math.max(28, startW + (clientX - startX))); }
+  function onMouseMove(e) { move(e.clientX); }
+  function onTouchMove(e) { if (e.touches[0]) { move(e.touches[0].clientX); e.preventDefault(); } }
+  function onUp() {
+    handle.classList.remove('active');
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onUp);
+    document.removeEventListener('touchmove', onTouchMove);
+    document.removeEventListener('touchend', onUp);
+  }
+  handle.addEventListener('mousedown', function(e) {
+    e.preventDefault(); e.stopPropagation();
+    startX = e.clientX; startW = getStartWidth();
+    handle.classList.add('active');
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onUp);
+  });
+  handle.addEventListener('touchstart', function(e) {
+    if (!e.touches[0]) return;
+    e.stopPropagation();
+    startX = e.touches[0].clientX; startW = getStartWidth();
+    handle.classList.add('active');
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onUp);
+  }, { passive: true });
+}
+
 function syncTblWidth1(table) {
   var sum = 0, ths = table.querySelectorAll('thead th');
   for (var i = 0; i < ths.length; i++) sum += ths[i].getBoundingClientRect().width;
-  table.style.width = Math.round(sum) + 'px'; // table 자체 width를 명시해야 열 폭 합이 그대로 반영됨(auto면 래퍼 폭으로 눌려 다른 열이 눌림)
+  table.style.width = Math.round(sum) + 'px';
 }
 
 function initColResize1() {
@@ -27,41 +59,30 @@ function initColResize1() {
     var handle = document.createElement('div');
     handle.className = 'col-resizer';
     th.appendChild(handle);
-    attachColDrag1(table, th, handle);
+    bindColResizeHandle(handle,
+      function() { return th.getBoundingClientRect().width; },
+      function(w) { th.style.width = w + 'px'; syncTblWidth1(table); });
   });
   syncTblWidth1(table);
 }
 
-function attachColDrag1(table, th, handle) {
-  var startX = 0, startW = 0;
-  function move(clientX) {
-    th.style.width = Math.max(28, startW + (clientX - startX)) + 'px';
-    syncTblWidth1(table);
-  }
-  function onMouseMove(e) { move(e.clientX); }
-  function onTouchMove(e) { if (e.touches[0]) { move(e.touches[0].clientX); e.preventDefault(); } }
-  function onUp() {
-    handle.classList.remove('active');
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onUp);
-    document.removeEventListener('touchmove', onTouchMove);
-    document.removeEventListener('touchend', onUp);
-  }
-  handle.addEventListener('mousedown', function(e) {
-    e.preventDefault(); e.stopPropagation();
-    startX = e.clientX; startW = th.getBoundingClientRect().width;
-    handle.classList.add('active');
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onUp);
+/* 전체화면/공유용으로 새로 만든 표(colgroup 기반)에 동일한 개별 열 리사이즈를 적용 */
+function initFsColResize(tbl, cols) {
+  var ths = tbl.querySelectorAll('thead th');
+  ths.forEach(function(th, i) {
+    var col = cols[i]; if (!col) return;
+    var handle = document.createElement('div');
+    handle.className = 'col-resizer';
+    th.style.position = 'relative';
+    th.appendChild(handle);
+    bindColResizeHandle(handle,
+      function() { return parseFloat(col.style.width) || 0; },
+      function(w) {
+        col.style.width = w + 'px';
+        var sum = 0; cols.forEach(function(c) { sum += parseFloat(c.style.width) || 0; });
+        tbl.style.width = sum + 'px';
+      });
   });
-  handle.addEventListener('touchstart', function(e) {
-    if (!e.touches[0]) return;
-    e.stopPropagation();
-    startX = e.touches[0].clientX; startW = th.getBoundingClientRect().width;
-    handle.classList.add('active');
-    document.addEventListener('touchmove', onTouchMove, { passive: false });
-    document.addEventListener('touchend', onUp);
-  }, { passive: true });
 }
 
 function addRow1(vals) {
@@ -180,7 +201,7 @@ function buildFsContent(targetEl) {
   var COLW1SUM = COLW1.reduce(function(a, b) { return a + b; }, 0);
   tbl.style.cssText = 'border-collapse:collapse;table-layout:fixed;font-size:14px;width:' + COLW1SUM + 'px';
   var cg = document.createElement('colgroup');
-  COLW1.forEach(function(w) { var col = document.createElement('col'); col.style.width = w + 'px'; cg.appendChild(col); });
+  var colEls = COLW1.map(function(w) { var col = document.createElement('col'); col.style.width = w + 'px'; cg.appendChild(col); return col; });
   tbl.appendChild(cg);
   if (srcThead) {
     var newThead = document.createElement('thead');
@@ -192,6 +213,7 @@ function buildFsContent(targetEl) {
       newHrow.appendChild(newHc);
     }
     newThead.appendChild(newHrow); tbl.appendChild(newThead);
+    initFsColResize(tbl, colEls);
   }
   var tbody = document.createElement('tbody');
   for (var ri = 0; ri < srcRows.length; ri++) {
