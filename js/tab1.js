@@ -41,8 +41,12 @@ function bindColResizeHandle(handle, getStartWidth, applyWidth) {
 }
 
 function syncTblWidth1(table) {
+  // getBoundingClientRect()는 이 시점에 table 자체 width가 아직 갱신 전이라
+  // "표 폭 > 열 폭 합" 상태일 때 fixed layout이 남는 폭을 전 열에 잠깐
+  // 나눠주는(렌더링 왜곡) 값을 읽게 된다. 우리가 직접 지정한 style.width(진짜
+  // 의도한 값)만 더해야 다른 열이 절대 오염되지 않는다.
   var sum = 0, ths = table.querySelectorAll('thead th');
-  for (var i = 0; i < ths.length; i++) sum += ths[i].getBoundingClientRect().width;
+  for (var i = 0; i < ths.length; i++) sum += parseFloat(ths[i].style.width) || ths[i].getBoundingClientRect().width;
   table.style.width = Math.round(sum) + 'px';
 }
 
@@ -60,7 +64,7 @@ function initColResize1() {
     handle.className = 'col-resizer';
     th.appendChild(handle);
     bindColResizeHandle(handle,
-      function() { return th.getBoundingClientRect().width; },
+      function() { return parseFloat(th.style.width) || th.getBoundingClientRect().width; },
       function(w) { th.style.width = w + 'px'; syncTblWidth1(table); });
   });
   syncTblWidth1(table);
