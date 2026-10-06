@@ -97,6 +97,47 @@ function doExcel1() {
 }
 
 /* ══ 전체화면 ══ */
+var FS_COLW1_KEY = 'colw_t1_fs';
+var FS_COLW_MIN = 30;
+
+// 숨김 열(고객/PO/요구납기 OFF)은 col 너비 0 → 빈 공간 없이 표시
+function syncFsTblW1(tbl, ths, cols) {
+  var sum = 0;
+  for (var i = 0; i < cols.length; i++) {
+    var hidden = ths[i] && ths[i].style.display === 'none';
+    if (hidden) { cols[i].dataset.w = cols[i].dataset.w || parseInt(cols[i].style.width, 10) || ''; cols[i].style.width = '0px'; continue; }
+    if (cols[i].dataset.w && cols[i].style.width === '0px') cols[i].style.width = cols[i].dataset.w + 'px';
+    sum += parseInt(cols[i].style.width, 10) || 0;
+  }
+  tbl.style.width = sum + 'px';
+}
+
+function restoreFsColW1(cols) {
+  try {
+    var widths = JSON.parse(localStorage.getItem(FS_COLW1_KEY) || '{}');
+    Object.keys(widths).forEach(function(k) {
+      var i = parseInt(k, 10), w = parseInt(widths[k], 10);
+      if (cols[i] && w > 0) cols[i].style.width = Math.max(FS_COLW_MIN, w) + 'px';
+    });
+  } catch (e) {}
+}
+
+function saveFsColW1(ths, cols) {
+  try {
+    var out = JSON.parse(localStorage.getItem(FS_COLW1_KEY) || '{}');
+    for (var i = 0; i < cols.length; i++) {
+      if (ths[i] && ths[i].style.display === 'none') continue;   // 숨김 열은 기존 값 유지
+      var w = parseInt(cols[i].style.width, 10); if (w > 0) out[i] = w;
+    }
+    localStorage.setItem(FS_COLW1_KEY, JSON.stringify(out));
+  } catch (e) {}
+}
+
+function resetFsColW1() {
+  try { localStorage.removeItem(FS_COLW1_KEY); } catch (e) {}
+  buildFsContent(); showToast(t('toast_colw_reset'));
+}
+
 function buildFsContent(targetEl) {
   var fc = targetEl || document.getElementById('fscnt'); fc.innerHTML = '';
   var hd = document.createElement('div');
@@ -114,7 +155,8 @@ function buildFsContent(targetEl) {
   var srcThead = srcTable.querySelector('thead');
   var srcCols = srcTable.querySelector('colgroup') ? srcTable.querySelector('colgroup').children : null;
   var tbl = document.createElement('table');
-  tbl.style.cssText = 'width:auto;border-collapse:collapse;table-layout:fixed;font-size:14px';
+  // min-width:0 → 전역 table{min-width:max-content} 무효화 (긴 텍스트 때문에 표가 강제로 넓어지지 않도록)
+  tbl.style.cssText = 'width:auto;min-width:0;border-collapse:collapse;table-layout:fixed;font-size:14px';
   var newHrow = null, colgroup = null;
   if (srcThead) {
     colgroup = document.createElement('colgroup');
@@ -124,18 +166,16 @@ function buildFsContent(targetEl) {
     for (var ci4 = 0; ci4 < hrow.cells.length; ci4++) {
       var hc = hrow.cells[ci4], newHc = document.createElement('th');
       newHc.textContent = hc.textContent;
-      var mw = getComputedStyle(hc).minWidth;
-      newHc.style.cssText = 'background:linear-gradient(180deg,#c4d8f0 0%,#b0ccec 100%);color:#003d8a;font-family:Rajdhani,sans-serif;font-size:12px;font-weight:700;letter-spacing:.8px;padding:8px 10px;border:1px solid #8ab8d8;white-space:nowrap;text-align:center';
-      if (mw && mw !== '0px') newHc.style.minWidth = mw;
+      // 원본 열의 min-width를 복사하지 않음 → 기본값보다 작게 축소 가능
+      newHc.style.cssText = 'background:linear-gradient(180deg,#c4d8f0 0%,#b0ccec 100%);color:#003d8a;font-family:Rajdhani,sans-serif;font-size:12px;font-weight:700;letter-spacing:.8px;padding:8px 4px;border:1px solid #8ab8d8;white-space:normal;overflow:hidden;overflow-wrap:anywhere;word-break:keep-all;text-align:center;min-width:0';
       newHrow.appendChild(newHc);
 
       var col = document.createElement('col');
       var srcCol = srcCols ? srcCols[ci4] : null;
       var seedW = srcCol && srcCol.style.width ? parseInt(srcCol.style.width, 10) : Math.round(hc.getBoundingClientRect().width);
-      if (seedW) { col.style.width = seedW + 'px'; totalW += seedW; }
+      if (seedW) col.style.width = seedW + 'px';
       colgroup.appendChild(col);
     }
-    tbl.style.width = totalW + 'px';
     tbl.appendChild(colgroup);
     newThead.appendChild(newHrow); tbl.appendChild(newThead);
   }
@@ -172,11 +212,17 @@ function buildFsContent(targetEl) {
   if (sv.parentNode === fc) fc.removeChild(sv);
   inner.appendChild(sv); inner.appendChild(tbl); outer.appendChild(inner); fc.appendChild(outer);
   if (newHrow && colgroup) {
-    restoreColWidths(tbl, 'colw_t1_fs');
     var newThs = newHrow.children, fsCols = colgroup.children;
+    restoreFsColW1(fsCols);
+    syncFsTblW1(tbl, newThs, fsCols);
+    var fsOpts = {
+      minWidth: FS_COLW_MIN,
+      onResize: function() { syncFsTblW1(tbl, newThs, fsCols); },
+      onEnd: function() { saveFsColW1(newThs, fsCols); }
+    };
     for (var hi = 1; hi < newThs.length; hi++) {
       if (!fsCols[hi]) continue;
-      attachColResizeHandle(tbl, newThs[hi], fsCols[hi], 'colw_t1_fs');
+      attachColResizeHandle(tbl, newThs[hi], fsCols[hi], FS_COLW1_KEY, fsOpts);
     }
   }
   if (APP.p1.photos.length) {

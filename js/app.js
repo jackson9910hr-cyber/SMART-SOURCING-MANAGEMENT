@@ -302,19 +302,20 @@ function restoreColWidths(table, storageKey) {
   } catch (e) {}
 }
 
-function attachColResizeHandle(table, th, col, storageKey) {
+function attachColResizeHandle(table, th, col, storageKey, opts) {
+  opts = opts || {};
   var handle = document.createElement('span');
   handle.className = 'col-resize-handle';
   th.appendChild(handle);
   var startX = 0, startW = 0, dragging = false, pendingW = null, raf = null;
   function applyPending() {
     raf = null;
-    if (pendingW !== null) { col.style.width = pendingW + 'px'; pendingW = null; }
+    if (pendingW !== null) { col.style.width = pendingW + 'px'; pendingW = null; if (opts.onResize) opts.onResize(); }
   }
   function onMove(e) {
     if (!dragging) return;
     var x = e.clientX;
-    var w = Math.max(getColMinWidth(th), startW + (x - startX));
+    var w = Math.max(opts.minWidth || getColMinWidth(th), startW + (x - startX));
     pendingW = w;
     if (!raf) raf = requestAnimationFrame(applyPending);
   }
@@ -324,7 +325,7 @@ function attachColResizeHandle(table, th, col, storageKey) {
     handle.classList.remove('resizing');
     if (raf) { cancelAnimationFrame(raf); applyPending(); }
     try { handle.releasePointerCapture(e.pointerId); } catch (ex) {}
-    persistColWidths(table, storageKey);
+    if (opts.onEnd) opts.onEnd(); else persistColWidths(table, storageKey);
     arAllTA();
   }
   handle.addEventListener('pointerdown', function(e) {
