@@ -348,16 +348,51 @@ function reapplyColResizeHandles(tableId) {
   for (var i = 1; i < ths.length; i++) {
     if (!cols[i]) continue;
     if (ths[i].querySelector('.col-resize-handle')) continue;
-    attachColResizeHandle(table, ths[i], cols[i], storageKey);
+    attachColResizeHandle(table, ths[i], cols[i], storageKey, table.dataset.colFree ? freeColOpts(table) : null);
   }
 }
 
-function makeColumnsResizable(tableId, storageKey) {
+/* ══ 자유 열 조절 모드: CSS 최소폭 무시(최소 COL_FREE_MIN), 표 전체 폭 = 열 합계 → 줄인 만큼 표가 줄어듦 ══ */
+var COL_FREE_MIN = 30;
+
+function syncFreeTableWidth(table) {
+  var colgroup = table.querySelector('colgroup'); if (!colgroup) return;
+  var sum = 0, cols = colgroup.children;
+  for (var i = 0; i < cols.length; i++) sum += parseInt(cols[i].style.width, 10) || 0;
+  table.style.width = sum + 'px';
+}
+
+function freeColOpts(table) {
+  return { minWidth: COL_FREE_MIN, onResize: function() { syncFreeTableWidth(table); } };
+}
+
+function initFreeColumns(table, storageKey) {
+  table.dataset.colFree = '1';
+  table.style.tableLayout = 'fixed';
+  table.style.minWidth = '0';
+  var colgroup = table.querySelector('colgroup'); if (!colgroup) return;
+  var cols = colgroup.children, ths = table.querySelectorAll('thead th'), saved = {};
+  try { saved = JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (e) {}
+  for (var i = 0; i < cols.length; i++) {
+    var w = parseInt(saved[i], 10);
+    if (!(w > 0)) w = parseInt(getComputedStyle(cols[i]).width, 10);
+    if (!(w > 0) && ths[i]) w = Math.round(ths[i].getBoundingClientRect().width);
+    if (!(w > 0)) w = 80;
+    cols[i].style.width = Math.max(i === 0 ? 20 : COL_FREE_MIN, w) + 'px';
+    // col/th 의 CSS min-width(.c2-* 클래스)가 축소를 막지 않도록 해제
+    cols[i].style.minWidth = '0';
+    if (ths[i]) ths[i].style.minWidth = '0';
+  }
+  syncFreeTableWidth(table);
+}
+
+function makeColumnsResizable(tableId, storageKey, free) {
   var table = document.getElementById(tableId); if (!table) return;
   if (table.dataset.colResizeInit) return;
   table.dataset.colResizeInit = '1';
   table.dataset.colStorageKey = storageKey;
-  restoreColWidths(table, storageKey);
+  if (free) initFreeColumns(table, storageKey);
+  else restoreColWidths(table, storageKey);
   reapplyColResizeHandles(tableId);
 }
 
@@ -756,7 +791,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (typeof renderCurrentLanguage === 'function') renderCurrentLanguage();
 
   makeColumnsResizable('t1', 'colw_t1');
-  makeColumnsResizable('t2', 'colw_t2');
+  makeColumnsResizable('t2', 'colw_t2', true);
 
   // 사진 파일 선택 (phInp 요소가 있을 때만)
   var phInp = document.getElementById('phInp');

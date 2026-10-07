@@ -331,7 +331,7 @@ function buildGantt(rows) {
     var fwKeys = ['n', 'v', 'p', 'i', 'req', 'st', 'en', 'lt', 'rm'];
     Object.keys(savedGanttW).forEach(function(idx) {
       var gi = parseInt(idx, 10);
-      if (gi >= 1 && gi < fwKeys.length) FW[fwKeys[gi]] = Math.max(40, savedGanttW[idx]);
+      if (gi >= 1 && gi < fwKeys.length) FW[fwKeys[gi]] = Math.max(COL_FREE_MIN, savedGanttW[idx]);
     });
   } catch (e) {}
   var fwArr = [FW.n, FW.v, FW.p, FW.i, FW.req, FW.st, FW.en, FW.lt, FW.rm];
@@ -363,12 +363,13 @@ function buildGantt(rows) {
   var HDR_BG2 = 'background:#b0ccec';
   var BORDER  = 'border:1px solid #a0c8e0';
   function tdFixed(i, w, rh, bg, extra) {
-    return 'width:'+w+'px;min-width:'+w+'px;max-width:'+w+'px;height:'+rh+'px;overflow:hidden;vertical-align:middle;text-align:center;background:'+bg+';'+BORDER+';'+(extra||'');
+    return 'height:'+rh+'px;overflow:hidden;vertical-align:middle;text-align:center;background:'+bg+';'+BORDER+';'+(extra||'');
   }
   var outerDivStyle = mos.length > 12 ? 'overflow-x:visible;width:100%;position:relative' : 'overflow-x:auto;width:100%;position:relative';
   var outerDivClass = mos.length > 12 ? 'no-scroll' : '';
   var fixedColsSum  = fwArr.reduce(function(a, b) { return a + b; }, 0);
-  var tableStyle    = mos.length > 12 ? 'border-collapse:separate;border-spacing:0;table-layout:fixed;width:100%' : 'border-collapse:separate;border-spacing:0;table-layout:fixed;width:' + (fixedColsSum + SVG_W) + 'px';
+  // min-width:0 → 전역 table{min-width:max-content} 무효화 (비고 등 긴 텍스트로 표가 강제 확장되지 않도록)
+  var tableStyle    = mos.length > 12 ? 'border-collapse:separate;border-spacing:0;table-layout:fixed;min-width:0;width:100%' : 'border-collapse:separate;border-spacing:0;table-layout:fixed;min-width:0;width:' + (fixedColsSum + SVG_W) + 'px';
   var H = '<div class="' + outerDivClass + '" style="' + outerDivStyle + '">';
   H += '<table style="' + tableStyle + '" data-mon-w="' + MON_W + '">';
   H += '<colgroup>';
@@ -379,7 +380,7 @@ function buildGantt(rows) {
   H += '<tr style="height:' + H1 + 'px">';
   var fixedLabels = [t('gantt_th_num'), t('th2_vend'), t('th2_proj'), t('th2_item'), t('th2_req'), t('gantt_th_start'), t('gantt_th_end'), t('gantt_th_lt'), t('th2_rmk')];
   fwArr.forEach(function(w, i) {
-    H += '<th rowspan="2" style="width:' + w + 'px;min-width:40px;height:' + (H1 + H2) + 'px;box-sizing:border-box;vertical-align:middle;text-align:center;font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;color:#1e4060;padding:4px 6px;white-space:nowrap;overflow:hidden;' + BORDER + ';' + HDR_BG + '">' + fixedLabels[i] + '</th>';
+    H += '<th rowspan="2" style="width:' + w + 'px;min-width:0;height:' + (H1 + H2) + 'px;box-sizing:border-box;vertical-align:middle;text-align:center;font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;color:#1e4060;padding:4px 6px;white-space:nowrap;overflow:hidden;' + BORDER + ';' + HDR_BG + '">' + fixedLabels[i] + '</th>';
   });
   yrKeys.forEach(function(y, yi) {
     var span = yrMap[y];
@@ -510,9 +511,19 @@ function attachGanttColResizeHandles() {
   var colgroup = table.querySelector('colgroup'); if (!colgroup) return;
   var ths = table.querySelectorAll('thead tr:first-child th[rowspan="2"]');
   var cols = colgroup.children;
+  // 12개월 이하: 표 폭 = 열 합계(px) → 줄인 만큼 표가 줄어듦 / 12개월 초과: 표 100%, 남는 폭은 월 영역이 흡수
+  var pxMode = table.style.width !== '100%';
+  var opts = {
+    minWidth: COL_FREE_MIN,
+    onResize: function() {
+      if (!pxMode) return;
+      var sum = 0; for (var c = 0; c < cols.length; c++) sum += parseInt(cols[c].style.width, 10) || 0;
+      table.style.width = sum + 'px';
+    }
+  };
   for (var i = 1; i < ths.length; i++) {
     if (!cols[i]) continue;
-    attachColResizeHandle(table, ths[i], cols[i], 'colw_gantt');
+    attachColResizeHandle(table, ths[i], cols[i], 'colw_gantt', opts);
   }
 }
 
