@@ -233,10 +233,10 @@ ko: {
   toast_lib_loading: '라이브러리 로딩 중',
   toast_excel_done: '엑셀 다운로드 완료',
   toast_capturing: '캡쳐 중...',
-  toast_capturing_alt: '쳪쳐 중...',
+  toast_capturing_alt: '캡처 중...',
   toast_dl_share_run: '다운로드/공유 실행',
   toast_colw_reset: '열 너비를 기본값으로 초기화했습니다',
-  fname_capture: '협의록_쳪쳐.jpg',
+  fname_capture: '협의록_캡처.jpg',
   fname_suffix1: '_협력사미팅협의록',
   sheet_name1: '협력사 미팅 협의록',
 
