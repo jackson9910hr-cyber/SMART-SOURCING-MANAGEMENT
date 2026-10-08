@@ -676,14 +676,16 @@ function captureEl(el, cb, forMail) {
 function dlOrShare(url, fname) {
   var pdfName = fname.replace(/\.jpe?g$/i, '') + '.pdf';
   makePdfBlob(url, function(pdfBlob) {
+    if (!pdfBlob) showToast(t('toast_pdf_fail'), true);
     var jpgBlob = dataUrlToBlob(url);
     var mob = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     var files = [new File([jpgBlob], fname, { type: 'image/jpeg' })];
     if (pdfBlob) files.push(new File([pdfBlob], pdfName, { type: 'application/pdf' }));
     var dlBoth = function() {
-      triggerDL(url, fname);
-      if (pdfBlob) setTimeout(function() { triggerBlobDL(pdfBlob, pdfName); }, 400);
+      // PDF를 먼저 받는다: 브라우저가 연속 다운로드를 막더라도 PDF는 확보되도록
+      if (pdfBlob) triggerBlobDL(pdfBlob, pdfName);
+      setTimeout(function() { triggerDL(url, fname); }, 300);
     };
     if (mob && navigator.canShare && navigator.canShare({ files: files })) {
       navigator.share({ files: files, title: fname }).catch(function(e) { if (!e || e.name !== 'AbortError') dlBoth(); });
@@ -698,9 +700,21 @@ function dataUrlToBlob(url) {
   return new Blob([arr], { type: mime });
 }
 
+/* jsPDF가 아직 없으면(캐시된 옛 index.html, CDN 로드 실패 등) 필요할 때 동적으로 불러온다. */
+function ensureJsPdf(cb) {
+  if (window.jspdf && window.jspdf.jsPDF) { cb(window.jspdf.jsPDF); return; }
+  var s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  s.onload = function() { cb(window.jspdf && window.jspdf.jsPDF); };
+  s.onerror = function() { cb(null); };
+  document.head.appendChild(s);
+}
+
 function makePdfBlob(url, cb) {
-  var JsPDF = window.jspdf && window.jspdf.jsPDF;
-  if (!JsPDF) { cb(null); return; }
+  ensureJsPdf(function(JsPDF) { if (!JsPDF) cb(null); else buildPdf(JsPDF, url, cb); });
+}
+
+function buildPdf(JsPDF, url, cb) {
   var img = new Image();
   img.onload = function() {
     try {
