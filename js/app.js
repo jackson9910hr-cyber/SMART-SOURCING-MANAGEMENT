@@ -672,15 +672,73 @@ function captureEl(el, cb, forMail) {
   }).then(function(c) { restoreOverflow(saved); cb(c.toDataURL('image/jpeg', q)); });
 }
 
+/* 공유/다운로드: 캡처 이미지(JPG)와 동일 내용의 PDF(A4 가로, 길면 여러 페이지)를 함께 저장한다. */
 function dlOrShare(url, fname) {
-  var mob = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-  if (mob && navigator.canShare) {
-    fetch(url).then(function(r) { return r.blob(); }).then(function(b) {
-      var f = new File([b], fname, { type: 'image/jpeg' });
-      if (navigator.canShare({ files: [f] })) { navigator.share({ files: [f], title: fname }).catch(function() { triggerDL(url, fname); }); }
-      else triggerDL(url, fname);
-    });
-  } else triggerDL(url, fname);
+  var pdfName = fname.replace(/\.jpe?g$/i, '') + '.pdf';
+  makePdfBlob(url, function(pdfBlob) {
+    if (!pdfBlob) showToast(t('toast_pdf_fail'), true);
+    var jpgBlob = dataUrlToBlob(url);
+    var mob = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var files = [new File([jpgBlob], fname, { type: 'image/jpeg' })];
+    if (pdfBlob) files.push(new File([pdfBlob], pdfName, { type: 'application/pdf' }));
+    var dlBoth = function() {
+      // PDF를 먼저 받는다: 브라우저가 연속 다운로드를 막더라도 PDF는 확보되도록
+      if (pdfBlob) triggerBlobDL(pdfBlob, pdfName);
+      setTimeout(function() { triggerDL(url, fname); }, 300);
+    };
+    if (mob && navigator.canShare && navigator.canShare({ files: files })) {
+      navigator.share({ files: files, title: fname }).catch(function(e) { if (!e || e.name !== 'AbortError') dlBoth(); });
+    } else dlBoth();
+  });
+}
+
+function dataUrlToBlob(url) {
+  var parts = url.split(','), mime = parts[0].match(/:(.*?);/)[1], bin = atob(parts[1]);
+  var arr = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+/* jsPDF가 아직 없으면(캐시된 옛 index.html, CDN 로드 실패 등) 필요할 때 동적으로 불러온다. */
+function ensureJsPdf(cb) {
+  if (window.jspdf && window.jspdf.jsPDF) { cb(window.jspdf.jsPDF); return; }
+  var s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  s.onload = function() { cb(window.jspdf && window.jspdf.jsPDF); };
+  s.onerror = function() { cb(null); };
+  document.head.appendChild(s);
+}
+
+function makePdfBlob(url, cb) {
+  ensureJsPdf(function(JsPDF) { if (!JsPDF) cb(null); else buildPdf(JsPDF, url, cb); });
+}
+
+function buildPdf(JsPDF, url, cb) {
+  var img = new Image();
+  img.onload = function() {
+    try {
+      var pdf = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      var pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), m = 8;
+      var w = pw - m * 2, h = img.height * w / img.width, avail = ph - m * 2;
+      for (var y = 0, first = true; y < h; y += avail, first = false) {
+        if (!first) pdf.addPage();
+        pdf.addImage(url, 'JPEG', m, m - y, w, h, 'cap', 'FAST');
+        // 다음 페이지 영역이 위/아래 여백에 겹쳐 보이지 않도록 여백을 흰색으로 덮는다
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, 0, pw, m, 'F'); pdf.rect(0, ph - m, pw, m, 'F');
+      }
+      cb(pdf.output('blob'));
+    } catch (e) { cb(null); }
+  };
+  img.onerror = function() { cb(null); };
+  img.src = url;
+}
+
+function triggerBlobDL(blob, fname) {
+  var u = URL.createObjectURL(blob);
+  triggerDL(u, fname);
+  setTimeout(function() { URL.revokeObjectURL(u); }, 10000);
 }
 
 function triggerDL(url, fname) { var a = document.createElement('a'); a.href = url; a.download = fname; a.click(); }
