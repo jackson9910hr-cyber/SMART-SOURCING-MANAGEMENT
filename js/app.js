@@ -672,6 +672,14 @@ function captureEl(el, cb, forMail) {
   }).then(function(c) { restoreOverflow(saved); cb(c.toDataURL('image/jpeg', q)); });
 }
 
+/* 공유 파일명: 저장/불러온 파일명을 우선 사용하고, 없으면 "날짜_페이지명"으로 만든다. */
+function shareFileName(pg) {
+  var p = pg === 1 ? APP.p1 : APP.p2;
+  var base = (p.name || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').replace(/\.(jpe?g|pdf|xlsx)$/i, '').trim();
+  if (!base) base = todayStr() + t(pg === 1 ? 'fname_suffix1' : 'fname_suffix2');
+  return base + '.jpg';
+}
+
 /* 공유/다운로드: 캡처 이미지(JPG)와 동일 내용의 PDF(A4 가로, 길면 여러 페이지)를 함께 저장한다. */
 function dlOrShare(url, fname) {
   var pdfName = fname.replace(/\.jpe?g$/i, '') + '.pdf';
