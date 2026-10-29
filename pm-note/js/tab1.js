@@ -197,7 +197,10 @@ function buildFsContent(targetEl) {
         newTd.appendChild(div);
       } else {
         var div2 = document.createElement('div');
-        div2.style.cssText = 'padding:5px 10px;font-size:14px;min-height:28px;line-height:1.5;box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;text-align:center';
+        // No 열(행 번호)은 두 자리 이상이어도 줄바꿈되지 않도록 한 줄로 표시
+        div2.style.cssText = ci === 0
+          ? 'padding:5px 2px;font-size:14px;min-height:28px;line-height:1.5;box-sizing:border-box;white-space:nowrap;text-align:center'
+          : 'padding:5px 10px;font-size:14px;min-height:28px;line-height:1.5;box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;text-align:center';
         div2.textContent = srcTd.textContent; newTd.appendChild(div2);
       }
       newTr.appendChild(newTd);
