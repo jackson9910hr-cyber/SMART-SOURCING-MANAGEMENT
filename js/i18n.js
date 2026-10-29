@@ -8,7 +8,15 @@
 var I18N = {
 ko: {
   // 헤더
-  app_title: '스마트 공정관리 앱 - 두산에너빌리티 Sourcing팀',
+  app_title: '스마트 공정관리 앱',
+  login_sub: '로그인이 필요합니다',
+  login_id_lbl: '아이디',
+  login_pw_lbl: '비밀번호',
+  login_btn: '로그인',
+  login_err_empty: '아이디와 비밀번호를 입력하세요.',
+  login_err_failed: '로그인에 실패했습니다.',
+  logout_btn: '로그아웃',
+  logout_confirm: '로그아웃 하시겠습니까?',
   brand_name: '스마트 공정관리 앱',
   hdr_credit_label: '파워서비스',
   hdr_credit_name: 'Sourcing팀',
@@ -271,7 +279,15 @@ ko: {
   toast_apply_success: '협의록 테이블에 AI 수정 내용이 반영되었습니다'
 },
 en: {
-  app_title: 'Smart Process Management App - Doosan Enerbility Sourcing Team',
+  app_title: 'Smart Process Management App',
+  login_sub: 'Please sign in',
+  login_id_lbl: 'ID',
+  login_pw_lbl: 'Password',
+  login_btn: 'Sign in',
+  login_err_empty: 'Please enter your ID and password.',
+  login_err_failed: 'Sign-in failed.',
+  logout_btn: 'Logout',
+  logout_confirm: 'Do you want to log out?',
   brand_name: 'Smart Process Management App',
   hdr_credit_label: 'Power Service',
   hdr_credit_name: 'Sourcing Team',

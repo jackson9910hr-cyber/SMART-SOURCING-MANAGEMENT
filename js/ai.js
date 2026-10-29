@@ -124,7 +124,7 @@ function buildFallbackPrompt(pg) {
   var today = todayStr();
   var pageName = pg === 1 ? '협력사 미팅 협의록' : pg === 2 ? '업체/품목별 부하관리' : '메모/노트';
   return [
-    '당신은 두산에너빌리티 Sourcing팀 협력사 공정관리 전문 AI 어시스턴트입니다.',
+    '당신은 Sourcing팀 협력사 공정관리 전문 AI 어시스턴트입니다.',
     '현재 날짜: ' + today,
     '현재 페이지: ' + pageName,
     '',
@@ -208,7 +208,7 @@ function _doOpenP1AiReview() {
   });
   var summary = document.getElementById('p1sum').value || '';
   var sys = [
-    '당신은 두산에너빌리티 Sourcing팀 협력사 미팅 협의록 작성 전문 비서입니다.',
+    '당신은 Sourcing팀 협력사 미팅 협의록 작성 전문 비서입니다.',
     '아래 협의록 데이터를 임원 및 협력업체에 공식 배포 가능한 회의록 최종본 수준으로 다듬어 주세요.',
     '', '## 다듬기 기준',
     '- 문체: 격식체 완결형으로 통일 (~함, ~됨, ~예정, ~확인됨, ~요청함)',

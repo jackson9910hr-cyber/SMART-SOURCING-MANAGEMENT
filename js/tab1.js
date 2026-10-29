@@ -248,13 +248,13 @@ function doShare() {
   tmp.style.cssText = 'position:fixed;left:-99999px;top:0;width:1200px;background:#fff;padding:24px;border:0';
   document.body.appendChild(tmp); buildFsContent(tmp);
   setTimeout(function() {
-    captureEl(tmp, function(url) { document.body.removeChild(tmp); dlOrShare(url, t('fname_capture')); showToast(t('toast_dl_share_run')); });
+    captureEl(tmp, function(url) { document.body.removeChild(tmp); dlOrShare(url, shareFileName(1)); showToast(t('toast_dl_share_run')); });
   }, 80);
 }
 
 function doShareFromFs() {
   showToast(t('toast_capturing_alt'));
-  captureEl(document.getElementById('fscnt'), function(url) { dlOrShare(url, t('fname_capture')); showToast(t('toast_dl_share_run')); });
+  captureEl(document.getElementById('fscnt'), function(url) { dlOrShare(url, shareFileName(1)); showToast(t('toast_dl_share_run')); });
 }
 
 function doMail(fromFS) {
