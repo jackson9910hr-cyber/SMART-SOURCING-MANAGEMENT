@@ -661,15 +661,37 @@ function restoreOverflow(saved) {
   saved.forEach(function(s) { s.t.style.overflowX = s.x; s.t.style.overflowY = s.y; });
 }
 
+/* 캡처 대상(바깥 틀)이 안쪽 내용(고정 px 너비 표 등)을 모두 감싸는 데 필요한 너비(border-box) */
+function captureFitWidth(el) {
+  var r = el.getBoundingClientRect(), right = r.right;
+  Array.prototype.forEach.call(el.querySelectorAll('*'), function(d) {
+    var b = d.getBoundingClientRect();
+    if (b.width && b.height && b.right > right) right = b.right;
+  });
+  if (right <= r.right) return Math.ceil(r.width);
+  var cs = getComputedStyle(el);
+  return Math.ceil(right - r.left + (parseFloat(cs.paddingRight) || 0) + (parseFloat(cs.borderRightWidth) || 0));
+}
+
 function captureEl(el, cb, forMail) {
   var saved = neutralizeOverflow(el);
+  // 바깥 틀 너비를 px로 고정 → 캡처용 복제 화면이 좁아져도 틀이 줄지 않고, 표가 넓으면 틀이 표를 감싸도록 넓어진다
+  var prevW = el.style.width, prevMaxW = el.style.maxWidth, prevBox = el.style.boxSizing;
+  var w = captureFitWidth(el);
+  el.style.boxSizing = 'border-box'; el.style.maxWidth = 'none'; el.style.width = w + 'px';
+  var h = Math.max(el.offsetHeight, el.scrollHeight);
+  var restore = function() {
+    el.style.width = prevW; el.style.maxWidth = prevMaxW; el.style.boxSizing = prevBox;
+    restoreOverflow(saved);
+  };
   var sc = forMail ? 0.7 : 1.5; var q = forMail ? 0.55 : 0.9;
   html2canvas(el, {
     backgroundColor: '#ffffff', scale: sc, useCORS: true, logging: false,
     scrollX: 0, scrollY: 0,
-    width: el.scrollWidth, height: el.scrollHeight,
-    windowWidth: el.scrollWidth, windowHeight: el.scrollHeight
-  }).then(function(c) { restoreOverflow(saved); cb(c.toDataURL('image/jpeg', q)); });
+    width: w, height: h,
+    windowWidth: Math.max(document.documentElement.clientWidth, w + 80), windowHeight: h
+  }).then(function(c) { restore(); cb(c.toDataURL('image/jpeg', q)); },
+          function() { restore(); showToast(t('toast_error_prefix') + 'capture', true); });
 }
 
 /* 공유 파일명: 저장/불러온 파일명을 우선 사용하고, 없으면 "날짜_페이지명"으로 만든다. */
