@@ -247,6 +247,7 @@ ko: {
   toast_colw_reset: '열 너비를 기본값으로 초기화했습니다',
   fname_capture: '협의록_캡처.jpg',
   fname_suffix1: '_협력사미팅협의록',
+  fname_share1: ' 미팅 협의록',
   sheet_name1: '협력사 미팅 협의록',
 
   // 탭2 전용 토스트
@@ -500,6 +501,7 @@ en: {
   toast_colw_reset: 'Column widths reset to default',
   fname_capture: 'MeetingMinutes_Capture.jpg',
   fname_suffix1: '_PartnerMeetingMinutes',
+  fname_share1: ' Meeting Minutes',
   sheet_name1: 'Partner Meeting Minutes',
 
   toast_enter_data_first: 'Please enter data first',

@@ -661,27 +661,58 @@ function restoreOverflow(saved) {
   saved.forEach(function(s) { s.t.style.overflowX = s.x; s.t.style.overflowY = s.y; });
 }
 
+/* 캡처 대상(바깥 틀)이 안쪽 내용(고정 px 너비 표 등)을 모두 감싸는 데 필요한 너비(border-box) */
+function captureFitWidth(el) {
+  var r = el.getBoundingClientRect(), right = r.right;
+  Array.prototype.forEach.call(el.querySelectorAll('*'), function(d) {
+    var b = d.getBoundingClientRect();
+    if (b.width && b.height && b.right > right) right = b.right;
+  });
+  if (right <= r.right) return Math.ceil(r.width);
+  var cs = getComputedStyle(el);
+  return Math.ceil(right - r.left + (parseFloat(cs.paddingRight) || 0) + (parseFloat(cs.borderRightWidth) || 0));
+}
+
 function captureEl(el, cb, forMail) {
   var saved = neutralizeOverflow(el);
+  // 바깥 틀 너비를 px로 고정 → 캡처용 복제 화면이 좁아져도 틀이 줄지 않고, 표가 넓으면 틀이 표를 감싸도록 넓어진다
+  var prevW = el.style.width, prevMaxW = el.style.maxWidth, prevBox = el.style.boxSizing;
+  var w = captureFitWidth(el);
+  el.style.boxSizing = 'border-box'; el.style.maxWidth = 'none'; el.style.width = w + 'px';
+  var h = Math.max(el.offsetHeight, el.scrollHeight);
+  var restore = function() {
+    el.style.width = prevW; el.style.maxWidth = prevMaxW; el.style.boxSizing = prevBox;
+    restoreOverflow(saved);
+  };
   var sc = forMail ? 0.7 : 1.5; var q = forMail ? 0.55 : 0.9;
   html2canvas(el, {
     backgroundColor: '#ffffff', scale: sc, useCORS: true, logging: false,
     scrollX: 0, scrollY: 0,
-    width: el.scrollWidth, height: el.scrollHeight,
-    windowWidth: el.scrollWidth, windowHeight: el.scrollHeight
-  }).then(function(c) { restoreOverflow(saved); cb(c.toDataURL('image/jpeg', q)); });
+    width: w, height: h,
+    windowWidth: Math.max(document.documentElement.clientWidth, w + 80), windowHeight: h
+  }).then(function(c) { restore(); cb(c.toDataURL('image/jpeg', q)); },
+          function() { restore(); showToast(t('toast_error_prefix') + 'capture', true); });
 }
 
-/* 공유 파일명: 저장/불러온 파일명을 우선 사용하고, 없으면 "날짜_페이지명"으로 만든다. */
+/* 한글이 자모로 분리(NFD)되어 저장되지 않도록 완성형(NFC)으로 맞춘다. */
+function nfc(s) { s = String(s || ''); return s.normalize ? s.normalize('NFC') : s; }
+
+/* 공유 파일명: 저장/불러온 파일명을 우선 사용하고, 없으면 날짜로 만든다.
+   협의록: "<파일제목> 미팅 협의록", 부하관리: "<파일제목>" (없으면 "날짜_부하관리") */
 function shareFileName(pg) {
   var p = pg === 1 ? APP.p1 : APP.p2;
-  var base = (p.name || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').replace(/\.(jpe?g|pdf|xlsx)$/i, '').trim();
-  if (!base) base = todayStr() + t(pg === 1 ? 'fname_suffix1' : 'fname_suffix2');
-  return base + '.jpg';
+  var base = nfc(p.name).replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').replace(/\.(jpe?g|pdf|xlsx)$/i, '').trim();
+  if (pg === 1) {
+    var sfx = nfc(t('fname_share1'));
+    if (!base) base = todayStr();
+    if (base.slice(-sfx.trim().length) !== sfx.trim()) base += sfx;
+  } else if (!base) base = todayStr() + t('fname_suffix2');
+  return nfc(base) + '.jpg';
 }
 
 /* 공유/다운로드: 캡처 이미지(JPG)와 동일 내용의 PDF(A4 가로, 길면 여러 페이지)를 함께 저장한다. */
 function dlOrShare(url, fname) {
+  fname = nfc(fname);
   var pdfName = fname.replace(/\.jpe?g$/i, '') + '.pdf';
   makePdfBlob(url, function(pdfBlob) {
     if (!pdfBlob) showToast(t('toast_pdf_fail'), true);
@@ -749,7 +780,7 @@ function triggerBlobDL(blob, fname) {
   setTimeout(function() { URL.revokeObjectURL(u); }, 10000);
 }
 
-function triggerDL(url, fname) { var a = document.createElement('a'); a.href = url; a.download = fname; a.click(); }
+function triggerDL(url, fname) { var a = document.createElement('a'); a.href = url; a.download = nfc(fname); a.click(); }
 
 function openMailModal() {
   APP._mailFromFS = false;
