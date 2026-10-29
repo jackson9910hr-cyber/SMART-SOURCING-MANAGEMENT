@@ -6,5 +6,5 @@ var CONFIG = {
   // ★ 필수 설정: GAS 웹앱 배포 URL을 여기에 입력하세요.
   // GAS 편집기 > 배포 > 웹 앱 > URL 복사 후 붙여넣기
   // 예: 'https://script.google.com/macros/s/AKfycb.../exec'
-  GAS_URL: 'https://script.google.com/macros/s/AKfycby5-J1FBFqdxvCG5MKMGQ490DAkbpz_n_cGK9fMMdDhBOZtzkprLQ3qU3s5MKxyTUAZNw/exec'
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbwxOidHC6Ic0dapH_NGtnTrDADZqlmi5lYU5Ho735P4bmSb5eChotMjVOLdj3dltqlEGg/exec'
 };
