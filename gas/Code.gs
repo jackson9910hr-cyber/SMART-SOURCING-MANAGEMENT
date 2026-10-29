@@ -2,21 +2,108 @@
 // 스마트 공정관리 앱 - Google Apps Script (GAS) 백엔드
 // ══════════════════════════════════════════════════════════════
 
-// SS_ID: GAS 스크립트 속성(Script Properties)에 SPREADSHEET_ID 키로 설정하거나,
-// 아래 기본값을 직접 수정하세요.
-var SS_ID  = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID')
-             || '16oPn8hzHJKYz2bK-cGs4awuIf_cU2HnCo3xh0CDUZ2U';
+// 스크립트 속성(Script Properties) 목록
+//   SPREADSHEET_ID       : 데이터 저장용 스프레드시트 ID (필수)
+//   LOGIN_ID / LOGIN_PASSWORD : 로그인 계정 → setupLogin() 실행 시 해시로 변환 후 평문 삭제
+//   OPENAI_API_KEY       : OpenAI API 키 (AI 기능 사용 시)
+//   AI_PASSWORD          : AI 기능 추가 비밀번호 (선택)
+//   MAIL_ALLOWED_DOMAINS : 메일 수신 허용 도메인, 쉼표 구분 (선택, 예: company.com,partner.co.kr)
+var SS_ID  = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
 var SHEET1 = '기록';
 var SHEET2 = '기록2';
 var SHEET3 = '기록3';
 
-/* ══ 초기 설정 (최초 1회만 실행) ══
-   GAS 에디터에서 이 함수를 선택하고 ▶ 실행하면
-   스크립트 속성이 자동으로 설정됩니다. */
-function initScriptProperties() {
+var SESSION_TTL_SEC   = 21600;  // 세션 유효시간 6시간 (CacheService 최대값)
+var LOGIN_MAX_FAIL    = 5;      // 연속 실패 허용 횟수
+var LOGIN_LOCK_SEC    = 900;    // 잠금 시간 15분
+var HASH_ITERATIONS   = 1000;
+var MAIL_DAILY_LIMIT  = 30;
+var MAX_IMG_B64_LEN   = 15 * 1024 * 1024;
+var AI_ALLOWED_MODELS = ['gpt-4o', 'gpt-4o-mini'];
+var AI_MAX_TOKENS     = 4000;
+
+/* ══ 로그인 계정 설정 (GAS 편집기에서 실행) ══
+   1) 프로젝트 설정 > 스크립트 속성에 LOGIN_ID, LOGIN_PASSWORD 추가
+   2) 이 함수를 선택하고 ▶ 실행 → 비밀번호가 해시로 저장되고 평문은 자동 삭제됨
+   비밀번호를 바꿀 때도 같은 방법으로 다시 실행 (기존 세션은 모두 로그아웃됨) */
+function setupLogin() {
   var props = PropertiesService.getScriptProperties();
-  props.setProperty('SPREADSHEET_ID', '16oPn8hzHJKYz2bK-cGs4awuIf_cU2HnCo3xh0CDUZ2U');
-  Logger.log('✅ SPREADSHEET_ID 설정 완료: ' + props.getProperty('SPREADSHEET_ID'));
+  var id = props.getProperty('LOGIN_ID');
+  var pw = props.getProperty('LOGIN_PASSWORD');
+  if (!id || !pw) throw new Error('스크립트 속성에 LOGIN_ID와 LOGIN_PASSWORD를 먼저 입력하세요.');
+  if (pw.length < 8) throw new Error('비밀번호는 8자 이상으로 설정하세요.');
+  var salt = Utilities.getUuid();
+  props.setProperty('LOGIN_PW_SALT', salt);
+  props.setProperty('LOGIN_PW_HASH', hashPassword(pw, salt));
+  props.setProperty('SESSION_EPOCH', String(Date.now()));
+  props.deleteProperty('LOGIN_PASSWORD');
+  Logger.log('✅ 로그인 계정 설정 완료: ' + id + ' (평문 비밀번호는 삭제됨)');
+  if (!props.getProperty('SPREADSHEET_ID')) Logger.log('⚠️ SPREADSHEET_ID 스크립트 속성이 비어 있습니다. 설정하세요.');
+}
+
+/* ══ 인증 ══ */
+function hashPassword(pw, salt) {
+  var h = salt + ':' + pw;
+  for (var i = 0; i < HASH_ITERATIONS; i++) {
+    h = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, h + salt, Utilities.Charset.UTF_8)
+      .map(function(b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
+  }
+  return h;
+}
+
+function safeEqual(a, b) {
+  a = String(a); b = String(b);
+  if (a.length !== b.length) return false;
+  var diff = 0;
+  for (var i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+function sessionKey(token) {
+  var epoch = PropertiesService.getScriptProperties().getProperty('SESSION_EPOCH') || '';
+  return 'sess_' + epoch + '_' + token;
+}
+
+function login(id, pw) {
+  var cache = CacheService.getScriptCache();
+  if (cache.get('login_lock')) {
+    return { success: false, error: '로그인 시도가 너무 많습니다. 15분 후 다시 시도하세요.', locked: true };
+  }
+  var props = PropertiesService.getScriptProperties();
+  var savedId = props.getProperty('LOGIN_ID'), hash = props.getProperty('LOGIN_PW_HASH'), salt = props.getProperty('LOGIN_PW_SALT');
+  if (!savedId || !hash || !salt) {
+    return { success: false, error: '서버에 로그인 계정이 설정되지 않았습니다. GAS에서 setupLogin()을 실행하세요.' };
+  }
+  var ok = typeof id === 'string' && typeof pw === 'string' && pw.length <= 200 &&
+           safeEqual(id, savedId) && safeEqual(hashPassword(pw, salt), hash);
+  if (!ok) {
+    var fails = Number(cache.get('login_fail') || 0) + 1;
+    if (fails >= LOGIN_MAX_FAIL) {
+      cache.put('login_lock', '1', LOGIN_LOCK_SEC);
+      cache.remove('login_fail');
+      return { success: false, error: '로그인 ' + LOGIN_MAX_FAIL + '회 실패로 15분간 잠금되었습니다.', locked: true };
+    }
+    cache.put('login_fail', String(fails), LOGIN_LOCK_SEC);
+    return { success: false, error: 'ID 또는 비밀번호가 올바르지 않습니다. (' + fails + '/' + LOGIN_MAX_FAIL + ')' };
+  }
+  cache.remove('login_fail');
+  var token = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+  cache.put(sessionKey(token), '1', SESSION_TTL_SEC);
+  return { success: true, token: token };
+}
+
+function isValidSession(token) {
+  if (typeof token !== 'string' || !/^[0-9a-f]{64}$/.test(token)) return false;
+  var cache = CacheService.getScriptCache();
+  var key = sessionKey(token);
+  if (!cache.get(key)) return false;
+  cache.put(key, '1', SESSION_TTL_SEC); // 사용 중이면 만료 연장
+  return true;
+}
+
+function logout(token) {
+  if (typeof token === 'string') CacheService.getScriptCache().remove(sessionKey(token));
+  return { success: true };
 }
 
 /* ══ HTTP POST 핸들러 (외부 웹앱에서 API 호출용) ══ */
@@ -27,23 +114,31 @@ function doPost(e) {
     var payload = req.payload || {};
     var result;
 
-    switch (action) {
-      case 'saveMeeting':      result = saveMeeting(payload); break;
-      case 'loadMeetingList':  result = loadMeetingList(); break;
-      case 'loadMeeting':      result = loadMeeting(payload.fileName); break;
-      case 'deleteMeeting':    result = deleteMeeting(payload.fileName); break;
-      case 'saveLoad':         result = saveLoad(payload); break;
-      case 'loadLoadList':     result = loadLoadList(); break;
-      case 'loadLoad':         result = loadLoad(payload.fileName); break;
-      case 'deleteLoad':       result = deleteLoad(payload.fileName); break;
-      case 'saveMemo':         result = saveMemo(payload); break;
-      case 'loadMemoList':     result = loadMemoList(); break;
-      case 'loadMemo':         result = loadMemo(payload.fileName); break;
-      case 'deleteMemo':       result = deleteMemo(payload.fileName); break;
-      case 'sendReportEmail':  result = sendReportEmail(payload.base64Img, payload.subject, payload.recipientEmail); break;
-      case 'callOpenAI':       result = callOpenAI_auth(payload); break;
-      case 'verifyAiPassword': result = verifyAiPassword(payload.password); break;
-      default: result = { success: false, error: 'Unknown action: ' + action };
+    if (action === 'login') {
+      result = login(payload.id, payload.password);
+    } else if (!isValidSession(req.token)) {
+      result = { success: false, authError: true, error: '로그인이 필요합니다.' };
+    } else {
+      switch (action) {
+        case 'ping':             result = { success: true }; break;
+        case 'logout':           result = logout(req.token); break;
+        case 'saveMeeting':      result = saveMeeting(payload); break;
+        case 'loadMeetingList':  result = loadMeetingList(); break;
+        case 'loadMeeting':      result = loadMeeting(payload.fileName); break;
+        case 'deleteMeeting':    result = deleteMeeting(payload.fileName); break;
+        case 'saveLoad':         result = saveLoad(payload); break;
+        case 'loadLoadList':     result = loadLoadList(); break;
+        case 'loadLoad':         result = loadLoad(payload.fileName); break;
+        case 'deleteLoad':       result = deleteLoad(payload.fileName); break;
+        case 'saveMemo':         result = saveMemo(payload); break;
+        case 'loadMemoList':     result = loadMemoList(); break;
+        case 'loadMemo':         result = loadMemo(payload.fileName); break;
+        case 'deleteMemo':       result = deleteMemo(payload.fileName); break;
+        case 'sendReportEmail':  result = sendReportEmail(payload.base64Img, payload.subject, payload.recipientEmail); break;
+        case 'callOpenAI':       result = callOpenAI_auth(payload); break;
+        case 'verifyAiPassword': result = verifyAiPassword(payload.password); break;
+        default: result = { success: false, error: 'Unknown action' };
+      }
     }
 
     return ContentService
@@ -51,29 +146,29 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
+    console.error(err);
     return ContentService
-      .createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+      .createTextOutput(JSON.stringify({ success: false, error: 'Bad request' }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-/* GAS 기본 웹앱 진입점 (기존 개인 앱용 - 필요시 유지) */
 function doGet(e) {
   return ContentService
-    .createTextOutput(JSON.stringify({ status: 'API Ready', version: '2.0' }))
+    .createTextOutput(JSON.stringify({ status: 'ok' }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/* ══ AI 비밀번호 인증 ══ */
+/* ══ AI 비밀번호 인증 (로그인 후 추가 잠금, AI_PASSWORD 설정 시에만) ══ */
 function verifyAiPassword(password) {
   var pw = PropertiesService.getScriptProperties().getProperty('AI_PASSWORD');
   if (!pw) return { success: true, verified: true };
-  return { success: true, verified: (password === pw) };
+  return { success: true, verified: safeEqual(password, pw) };
 }
 
 function callOpenAI_auth(payload) {
   var pw = PropertiesService.getScriptProperties().getProperty('AI_PASSWORD');
-  if (pw && payload.aiPassword !== pw) {
+  if (pw && !safeEqual(payload.aiPassword, pw)) {
     return { success: false, error: 'AI 비밀번호가 올바르지 않습니다.' };
   }
   var p = {};
@@ -83,6 +178,7 @@ function callOpenAI_auth(payload) {
 
 /* ══ 내부 유틸 ══ */
 function getSheet(name) {
+  if (!SS_ID) throw new Error('SPREADSHEET_ID 스크립트 속성이 설정되지 않았습니다.');
   var ss = SpreadsheetApp.openById(SS_ID);
   var sh = ss.getSheetByName(name);
   if (!sh) sh = ss.insertSheet(name);
@@ -366,11 +462,37 @@ function deleteMemo(fileName) {
 }
 
 /* ══ 메일 전송 ══ */
+function isAllowedRecipient(email, ownEmail) {
+  if (!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(email)) return false;
+  if (ownEmail && email.toLowerCase() === ownEmail.toLowerCase()) return true;
+  var domains = PropertiesService.getScriptProperties().getProperty('MAIL_ALLOWED_DOMAINS');
+  if (!domains) return true;
+  var host = email.split('@')[1].toLowerCase();
+  return domains.split(',').some(function(d) {
+    d = d.trim().toLowerCase().replace(/^@/, '');
+    return d && (host === d || host.slice(-(d.length + 1)) === '.' + d);
+  });
+}
+
 function sendReportEmail(base64Img, subject, recipientEmail) {
   try {
-    var recipient = recipientEmail ||
-      PropertiesService.getScriptProperties().getProperty('REPORT_EMAIL') ||
-      Session.getEffectiveUser().getEmail();
+    var props = PropertiesService.getScriptProperties();
+    var ownEmail = Session.getEffectiveUser().getEmail();
+    var recipient = String(recipientEmail || props.getProperty('REPORT_EMAIL') || ownEmail).trim();
+    if (!isAllowedRecipient(recipient, ownEmail)) {
+      return { success: false, error: '허용되지 않은 수신자입니다. (MAIL_ALLOWED_DOMAINS 확인)' };
+    }
+    if (typeof base64Img !== 'string' || !base64Img || base64Img.length > MAX_IMG_B64_LEN) {
+      return { success: false, error: '첨부 이미지가 없거나 너무 큽니다.' };
+    }
+    var today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyyMMdd');
+    var cnt = {};
+    try { cnt = JSON.parse(props.getProperty('MAIL_COUNT') || '{}'); } catch(_) {}
+    var sent = cnt.date === today ? Number(cnt.count) || 0 : 0;
+    if (sent >= MAIL_DAILY_LIMIT) {
+      return { success: false, error: '오늘 메일 발송 한도(' + MAIL_DAILY_LIMIT + '건)를 초과했습니다.' };
+    }
+    subject = String(subject || '').replace(/[\r\n]+/g, ' ').slice(0, 200);
     var blob = Utilities.newBlob(
       Utilities.base64Decode(base64Img.replace(/^data:image\/[a-z]+;base64,/, '')),
       'image/jpeg', 'report.jpg'
@@ -387,6 +509,7 @@ function sendReportEmail(base64Img, subject, recipientEmail) {
       htmlBody: htmlBody,
       inlineImages: { reportImg: blob }
     });
+    props.setProperty('MAIL_COUNT', JSON.stringify({ date: today, count: sent + 1 }));
     return { success: true };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
@@ -411,9 +534,10 @@ function callOpenAI(payload) {
       return { success: false, error: 'API 키가 설정되지 않았습니다. GAS 스크립트 속성 > OPENAI_API_KEY를 확인하세요.' };
     }
     var messages  = payload.messages  || [];
-    var model     = payload.model     || 'gpt-4o';
-    var maxTokens = payload.max_tokens || 4000;
-    var temp      = payload.temperature != null ? payload.temperature : 0.1;
+    var model     = AI_ALLOWED_MODELS.indexOf(payload.model) >= 0 ? payload.model : AI_ALLOWED_MODELS[0];
+    var maxTokens = Math.min(Math.max(Number(payload.max_tokens) || AI_MAX_TOKENS, 1), AI_MAX_TOKENS);
+    var temp      = Math.min(Math.max(Number(payload.temperature != null ? payload.temperature : 0.1) || 0, 0), 1);
+    if (!Array.isArray(messages) || messages.length > 50) return { success: false, error: '잘못된 요청입니다.' };
     var body = JSON.stringify({ model: model, messages: messages, max_tokens: maxTokens, temperature: temp });
     var resp = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
       method: 'post', contentType: 'application/json',
