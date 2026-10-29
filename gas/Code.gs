@@ -25,7 +25,8 @@ var AI_MAX_TOKENS     = 4000;
 /* ══ 로그인 계정 설정 (GAS 편집기에서 실행) ══
    1) 프로젝트 설정 > 스크립트 속성에 LOGIN_ID, LOGIN_PASSWORD 추가
    2) 이 함수를 선택하고 ▶ 실행 → 비밀번호가 해시로 저장되고 평문은 자동 삭제됨
-   비밀번호를 바꿀 때도 같은 방법으로 다시 실행 (기존 세션은 모두 로그아웃됨) */
+      (실행하지 않아도 첫 로그인 시도 때 자동으로 처리됨)
+   비밀번호를 바꿀 때도 LOGIN_PASSWORD를 다시 입력 (기존 세션은 모두 로그아웃됨) */
 function setupLogin() {
   var props = PropertiesService.getScriptProperties();
   var id = props.getProperty('LOGIN_ID');
@@ -70,6 +71,9 @@ function login(id, pw) {
     return { success: false, error: '로그인 시도가 너무 많습니다. 15분 후 다시 시도하세요.', locked: true };
   }
   var props = PropertiesService.getScriptProperties();
+  if (props.getProperty('LOGIN_PASSWORD')) {
+    try { setupLogin(); } catch (e) { return { success: false, error: e.message }; }
+  }
   var savedId = props.getProperty('LOGIN_ID'), hash = props.getProperty('LOGIN_PW_HASH'), salt = props.getProperty('LOGIN_PW_SALT');
   if (!savedId || !hash || !salt) {
     return { success: false, error: '서버에 로그인 계정이 설정되지 않았습니다. GAS에서 setupLogin()을 실행하세요.' };
