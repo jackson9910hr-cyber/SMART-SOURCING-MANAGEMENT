@@ -795,22 +795,38 @@ function execSendMail() {
   showToast(t('toast_mail_preparing'));
   var fromFS = APP._mailFromFS;
   if (fromFS) {
-    captureEl(document.getElementById('fscnt'), function(url) { sendMail(url, t('mail_subject_default'), to); }, true);
+    captureEl(document.getElementById('fscnt'), function(url) { sendMail(url, t('mail_subject_default'), to, 1); });
   } else {
     var tmp = document.createElement('div');
     tmp.style.cssText = 'position:fixed;left:-99999px;top:0;width:1200px;background:#fff;padding:24px;border:0';
     document.body.appendChild(tmp); buildFsContent(tmp);
     setTimeout(function() {
-      captureEl(tmp, function(url) { document.body.removeChild(tmp); sendMail(url, t('mail_subject_default'), to); }, true);
+      captureEl(tmp, function(url) { document.body.removeChild(tmp); sendMail(url, t('mail_subject_default'), to, 1); });
     }, 80);
   }
 }
 
-function sendMail(dataUrl, subject, recipient) {
+/* 메일송부: 본문 이미지 + PDF 첨부(파일명은 공유와 동일 규칙). iPad에서 직접 저장하면 iPadOS가
+   한글 파일명을 자모로 분해하므로, 파일명이 깨지지 않는 PDF가 필요할 때는 메일 첨부를 사용한다. */
+function sendMail(dataUrl, subject, recipient, pg) {
   var b64 = dataUrl.indexOf(',') >= 0 ? dataUrl.split(',')[1] : dataUrl;
-  callAPI('sendReportEmail', { base64Img: b64, subject: subject || t('mail_subject_default'), recipientEmail: recipient }).then(function(r) {
-    if (r && r.success) showToast(t('toast_mail_sent'));
-    else showToast(t('toast_mail_failed_prefix') + (r && r.error ? r.error : 'Unknown'), true);
+  var base = pg ? shareFileName(pg).replace(/\.jpe?g$/i, '') : '';
+  var send = function(pdfB64) {
+    callAPI('sendReportEmail', {
+      base64Img: b64, subject: base || subject || t('mail_subject_default'), recipientEmail: recipient,
+      pdfBase64: pdfB64 || '', pdfName: base ? base + '.pdf' : ''
+    }).then(function(r) {
+      if (r && r.success) showToast(t('toast_mail_sent'));
+      else showToast(t('toast_mail_failed_prefix') + (r && r.error ? r.error : 'Unknown'), true);
+    });
+  };
+  if (!pg) { send(''); return; }
+  makePdfBlob(dataUrl, function(blob) {
+    if (!blob) { send(''); return; }
+    var fr = new FileReader();
+    fr.onload = function() { send(String(fr.result).split(',')[1] || ''); };
+    fr.onerror = function() { send(''); };
+    fr.readAsDataURL(blob);
   });
 }
 

@@ -578,7 +578,7 @@ function closeFS2() {
 }
 
 function ganttShare() { showToast(t('toast_capturing')); captureGanttFull(function(url) { dlOrShare(url, shareFileName(2)); showToast(t('toast_dl_share_run')); }, false); }
-function ganttMail() { showToast(t('toast_mail_preparing')); captureGanttFull(function(url) { sendMail(url, t('mail_subject_gantt')); }, true); }
+function ganttMail() { showToast(t('toast_mail_preparing')); captureGanttFull(function(url) { sendMail(url, t('mail_subject_gantt'), '', 2); }); }
 function ganttShareFromFs() {
   showToast(t('toast_capturing'));
   var fsov2 = document.getElementById('fsov2');

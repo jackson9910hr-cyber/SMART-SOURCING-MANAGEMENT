@@ -138,7 +138,7 @@ function doPost(e) {
         case 'loadMemoList':     result = loadMemoList(); break;
         case 'loadMemo':         result = loadMemo(payload.fileName); break;
         case 'deleteMemo':       result = deleteMemo(payload.fileName); break;
-        case 'sendReportEmail':  result = sendReportEmail(payload.base64Img, payload.subject, payload.recipientEmail); break;
+        case 'sendReportEmail':  result = sendReportEmail(payload.base64Img, payload.subject, payload.recipientEmail, payload.pdfBase64, payload.pdfName); break;
         case 'callOpenAI':       result = callOpenAI_auth(payload); break;
         case 'verifyAiPassword': result = verifyAiPassword(payload.password); break;
         default: result = { success: false, error: 'Unknown action' };
@@ -478,7 +478,7 @@ function isAllowedRecipient(email, ownEmail) {
   });
 }
 
-function sendReportEmail(base64Img, subject, recipientEmail) {
+function sendReportEmail(base64Img, subject, recipientEmail, pdfBase64, pdfName) {
   try {
     var props = PropertiesService.getScriptProperties();
     var ownEmail = Session.getEffectiveUser().getEmail();
@@ -496,7 +496,7 @@ function sendReportEmail(base64Img, subject, recipientEmail) {
     if (sent >= MAIL_DAILY_LIMIT) {
       return { success: false, error: '오늘 메일 발송 한도(' + MAIL_DAILY_LIMIT + '건)를 초과했습니다.' };
     }
-    subject = String(subject || '').replace(/[\r\n]+/g, ' ').slice(0, 200);
+    subject = String(subject || '').normalize('NFC').replace(/[\r\n]+/g, ' ').slice(0, 200);
     var blob = Utilities.newBlob(
       Utilities.base64Decode(base64Img.replace(/^data:image\/[a-z]+;base64,/, '')),
       'image/jpeg', 'report.jpg'
@@ -509,10 +509,14 @@ function sendReportEmail(base64Img, subject, recipientEmail) {
       '<br><img src="cid:reportImg" style="max-width:100%;border:1px solid #ccc;border-radius:4px"><br><br>' +
       '<p style="color:#888;font-size:12px">본 메일은 스마트 공정관리 앱에서 자동 발송되었습니다.</p>' +
       '</div>';
-    GmailApp.sendEmail(recipient, subject || '협력사 공정관리 협의록', '', {
-      htmlBody: htmlBody,
-      inlineImages: { reportImg: blob }
-    });
+    var opts = { htmlBody: htmlBody, inlineImages: { reportImg: blob } };
+    // PDF 첨부: 서버에서 파일명을 완성형(NFC)으로 정리 → 받는 쪽(Windows 등)에서 한글이 자모로 깨지지 않음
+    if (typeof pdfBase64 === 'string' && pdfBase64 && pdfBase64.length <= MAX_IMG_B64_LEN) {
+      var nm = String(pdfName || 'report.pdf').normalize('NFC').replace(/[\\/:*?"<>|\r\n]/g, '_').slice(0, 150);
+      if (!/\.pdf$/i.test(nm)) nm += '.pdf';
+      opts.attachments = [Utilities.newBlob(Utilities.base64Decode(pdfBase64.replace(/^data:[^,]*,/, '')), 'application/pdf', nm)];
+    }
+    GmailApp.sendEmail(recipient, subject || '협력사 공정관리 협의록', '', opts);
     props.setProperty('MAIL_COUNT', JSON.stringify({ date: today, count: sent + 1 }));
     return { success: true };
   } catch(e) { return { success: false, error: e.toString() }; }
