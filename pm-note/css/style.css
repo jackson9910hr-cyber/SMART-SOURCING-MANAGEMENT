@@ -154,7 +154,7 @@ tbody td { border: 1px solid #aac8e0; padding: 1px; vertical-align: top; }
 .c2-req{min-width:95px;width:95px}.c2-s{min-width:95px;width:95px}.c2-e{min-width:95px;width:95px}
 .c2-lt{min-width:70px;width:70px}.c2-rmk{min-width:130px;width:130px}.c2-p{min-width:95px;width:95px}
 .c2-prog{min-width:70px;width:70px}
-.rn { color: var(--txt3); font-family: var(--fm); font-size: 11px; width: 28px; min-width: 28px; text-align: center; user-select: none; padding: 5px 0; }
+.rn { color: var(--txt3); font-family: var(--fm); font-size: 11px; width: 28px; min-width: 28px; text-align: center; user-select: none; padding: 5px 0; white-space: nowrap; }
 
 /* ══ 컬럼 리사이즈 ══ */
 .col-resize-handle { position: absolute; top: 0; right: 0; width: 12px; height: 100%; cursor: col-resize; z-index: 12; touch-action: none; -webkit-user-select: none; user-select: none; }
