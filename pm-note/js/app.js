@@ -328,8 +328,16 @@ function attachColResizeHandle(table, th, col, storageKey, opts) {
     if (opts.onEnd) opts.onEnd(); else persistColWidths(table, storageKey);
     arAllTA();
   }
+  // iOS/iPadOS Safari(WebKit)는 <col>의 getBoundingClientRect()가 0을 반환 →
+  // 시작 너비가 0이 되어 최소폭으로 줄었다가 다시 늘어나는 문제. 지정 너비 → th 실측 순으로 사용.
+  function currentWidth() {
+    var w = parseFloat(col.style.width);
+    if (!(w > 0)) w = col.getBoundingClientRect().width;
+    if (!(w > 0)) w = th.getBoundingClientRect().width;
+    return w || 0;
+  }
   handle.addEventListener('pointerdown', function(e) {
-    dragging = true; startX = e.clientX; startW = col.getBoundingClientRect().width;
+    dragging = true; startX = e.clientX; startW = currentWidth();
     handle.classList.add('resizing');
     try { handle.setPointerCapture(e.pointerId); } catch (ex) {}
     e.preventDefault();
